@@ -2,7 +2,7 @@ import { AnyThreadChannel, Channel, ChannelType, Collection, Message, TextChanne
 import { loadChain } from 'langchain/chains.js';
 
 export type ValidTextChannel = TextChannel | AnyThreadChannel;
-export const EMPTY_MESSAGE = 'No new messages to summarize.';
+export const EMPTY_MESSAGE = 'No recent messages.';
 
 export const IS_PROD = true;
 export const APPLICATION_ID = '1076715205691707494';

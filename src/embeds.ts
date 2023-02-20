@@ -35,7 +35,7 @@ export function createThreadListEmbed(
   return new EmbedBuilder()
     .setColor(0x0099ff)
     .setDescription(
-      allThreads
+      allThreads.length === 0 ? `No recent threads.` : allThreads
         .slice(0, 10)
         .map((t) => `<#${t.thread.parent?.id}> > <#${t.thread.id}> (${t.count})`)
         .join('\n')
