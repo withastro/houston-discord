@@ -7,6 +7,7 @@ import {
   Routes,
   SlashCommandBuilder,
 } from 'discord.js';
+import dotenv from 'dotenv';
 import { createSummaryEmbed } from './embeds.js';
 import {
   APPLICATION_ID,
@@ -16,6 +17,8 @@ import {
   validateChannel,
   ValidTextChannel,
 } from './util.js';
+
+dotenv.config();
 const { DISCORD_TOKEN } = process.env;
 
 export const commands = new Collection<string, { data: SlashCommandBuilder; execute: Function }>([

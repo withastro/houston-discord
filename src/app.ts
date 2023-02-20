@@ -1,5 +1,6 @@
 import { AnyThreadChannel, Client, Events, GatewayIntentBits } from 'discord.js';
 import dotenv from 'dotenv';
+import schedule from 'node-schedule';
 import { onCommandInteraction, registerCommands } from './commands.js';
 import { createSummaryEmbed, createThreadListEmbed, createWelcomeEmbed } from './embeds.js';
 import {
@@ -34,7 +35,7 @@ client.on(Events.InteractionCreate, onCommandInteraction);
 client.once(Events.ClientReady, async (c) => {
   console.log(`Ready! Logged in as ${c.user.tag}`);
 });
-import schedule from 'node-schedule';
+
 schedule.scheduleJob('3 * * *', async () =>{
   const guild = await client.guilds.fetch(GUILD_ID);
   const postToChannel = (await client.channels.fetch(CORE_CHANNEL_ID))! as ValidTextChannel;
