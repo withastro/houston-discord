@@ -32,15 +32,21 @@ export function createThreadListEmbed(
   channel: ValidTextChannel,
   allThreads: { thread: AnyThreadChannel; count: number }[]
 ) {
+  if (allThreads.length === 0) {
+    return new EmbedBuilder()
+      .setColor(0x888888)
+      .setTitle(`Daily Summary: All Active Threads`)
+      .setDescription(`No recent threads.`);
+  }
   return new EmbedBuilder()
     .setColor(0x0099ff)
+    .setTitle(`Daily Summary: All Active Threads`)
     .setDescription(
-      allThreads.length === 0 ? `No recent threads.` : allThreads
+      allThreads
         .slice(0, 10)
         .map((t) => `<#${t.thread.parent?.id}> > <#${t.thread.id}> (${t.count})`)
         .join('\n')
     )
-    .setTitle(`Daily Summary: All Active Threads`)
     .setFooter({ text: 'Summary of active threads in the last 24 hours' })
     .setTimestamp();
 }

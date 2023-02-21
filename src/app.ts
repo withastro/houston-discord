@@ -36,7 +36,7 @@ client.once(Events.ClientReady, async (c) => {
   console.log(`Ready! Logged in as ${c.user.tag}`);
 });
 
-schedule.scheduleJob('3 * * *', async () =>{
+schedule.scheduleJob('0 0 3 * * *', async () =>{
   const guild = await client.guilds.fetch(GUILD_ID);
   const postToChannel = (await client.channels.fetch(CORE_CHANNEL_ID))! as ValidTextChannel;
   const threads = await guild.channels.fetchActiveThreads();
