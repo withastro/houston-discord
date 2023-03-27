@@ -2,22 +2,23 @@
   "name": "houston-bot",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "lib/app.js",
   "type": "module",
   "scripts": {
-    "start": "tsc && node lib/app.js",
+    "start": "tsc && node .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/node-schedule": "^2.1.0",
+    "algoliasearch": "^4.16.0",
     "discord.js": "^14.7.1",
-    "dotenv": "^16.0.3",
-    "langchain": "^0.0.7",
-    "node-schedule": "^2.1.1",
-    "openai": "^3.1.0",
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^18.15.9",
+    "@types/node-schedule": "^2.1.0",
     "typescript": "^4.9.5"
   }
 }
