@@ -16,14 +16,16 @@ declare interface Event {
 }
 
 declare type categories = {
-	[key: string]: any;
+	[category: string]: SearchHit[];
 }
 
 declare interface SearchHit {
 	readonly objectID: string;
     readonly _highlightResult?: {} | undefined;
-    readonly _snippetResult?: {} | undefined;
+    readonly _snippetResult?: any | undefined;
     readonly _rankingInfo?: RankingInfo | undefined;
     readonly _distinctSeqID?: number | undefined;
+	readonly hierarchy: any;
 	readonly url: string;
+	readonly type: "content" | `lvl${number}`;
 }

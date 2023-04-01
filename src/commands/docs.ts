@@ -57,6 +57,7 @@ export default {
 			highlightPreTag: "**",
 			highlightPostTag: "**",
 			hitsPerPage: 20,
+			snippetEllipsisText: '…',
 			attributesToRetrieve: ["hierarchy.lvl0","hierarchy.lvl1","hierarchy.lvl2","hierarchy.lvl3","hierarchy.lvl4","hierarchy.lvl5","hierarchy.lvl6","content","type","url"],
 			attributesToSnippet: ["hierarchy.lvl1:10","hierarchy.lvl2:10","hierarchy.lvl3:10","hierarchy.lvl4:10","hierarchy.lvl5:10","hierarchy.lvl6:10","content:10"]
 		})
@@ -71,45 +72,38 @@ export default {
 			}
 		})
 
-		const categories: categories = [];
+		const categories: categories = {};
 
 		items.forEach(item => {
 
-			// @ts-ignore
 			if(!categories[item.hierarchy.lvl0])
 			{
-				// @ts-ignore
 				categories[item.hierarchy.lvl0] = [];
 			}
-			// @ts-ignore
 			categories[item.hierarchy.lvl0].push(item);
 		});
 
 		// exclude tutorials
-		if(categories["Tutorials"])
-		{
-			delete categories["Tutorials"]
-		}
+		delete categories["Tutorials"]
 		
-		const embeds = [];
+		const embeds: EmbedBuilder[] = [];
 
 		embeds.push(new EmbedBuilder().setTitle(`Results for "${interaction.options.getString("query")}"`).setColor("#FF5D00"))
 		
 		for(const category in categories)
 		{
-
 			const embed = new EmbedBuilder()
 				.setTitle(category)
 				.setColor("#FF5D00");
 
 			let body = ""
 
-			let items: any = {};
+			let items: {[heading: string]: SearchHit[]} = {};
 
 			for(let i = 0; i < categories[category].length && i < 5; i++)
 			{
 				const item = categories[category][i];
-				if(!item._highlightResult)
+				if(!item._snippetResult)
 					return;
 
 				if(!items[item.hierarchy[`lvl1`]])
@@ -148,28 +142,20 @@ export default {
 
 					let result = "";
 
-					for(let i = 0; i < 7; i++)
+					if(item._snippetResult)
 					{
-						if(item._highlightResult.hierarchy[`lvl${i}`])
+						if(item.type == "content")
 						{
-							if(item._highlightResult.hierarchy[`lvl${i}`].matchLevel == 'full')
-							{
-								result = item._highlightResult.hierarchy[`lvl${i}`].value;
-							}
+							result = item._snippetResult.content.value;
 						}
 						else
 						{
-							break;
+							result = item._snippetResult.hierarchy[item.type].value;
 						}
-					}
 
-					if(result == "" && item._snippetResult.content)
-					{
-						result = item._snippetResult.content.value;
+						body += `[🔗](${item.url}) **${replaceTags(hierarchy)}**\n`
+						body += `[${replaceTags(result.substring(0, 66))}](${item.url})\n`
 					}
-
-					body += `[🔗](${item.url}) **${replaceTags(hierarchy)}**\n`
-					body += `[${replaceTags(result.substring(0, 66))}](${item.url})\n`
 				}
 			}
 
@@ -180,11 +166,7 @@ export default {
 
 		if(embeds.length == 1)
 		{
-			const embed = new EmbedBuilder().setTitle(`No results found for "${interaction.options.getString("query")}"`).setColor("#FF5D00");
-
-			await interaction.editReply({embeds: [embed]});
-
-			return;
+			embeds[0].setTitle(`No results found for "${interaction.options.getString("query")}"`);
 		}
 
 		await interaction.editReply({embeds: embeds});
