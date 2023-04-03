@@ -68,7 +68,7 @@ export default {
 					)),
 	async execute(interaction: ChatInputCommandInteraction) {
 
-		if(interaction.channelId != "1036711421439901758")
+		if(interaction.channelId != "916064458814681218")
 		{
 			const embed = getDefaultEmbed().setTitle("This command is still in beta and can therefor not yet be accessed in this channel");
 			await interaction.reply({embeds: [embed], ephemeral: true});
