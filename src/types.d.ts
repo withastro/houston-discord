@@ -2,7 +2,8 @@ import discordjs, {SlashCommandBuilder} from "discord.js"
 
 declare interface Command {
 	data: SlashCommandBuilder,
-	execute: Function
+	execute: Function,
+	autocomplete?: Function
 }
 
 declare interface Client extends discordjs.Client {
@@ -27,5 +28,6 @@ declare interface SearchHit {
     readonly _distinctSeqID?: number | undefined;
 	readonly hierarchy: any;
 	readonly url: string;
+	readonly anchor: string;
 	readonly type: "content" | `lvl${number}`;
 }

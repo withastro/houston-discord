@@ -1,0 +1,1 @@
+export {getDefaultEmbed} from "./embeds";

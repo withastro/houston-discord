@@ -1,11 +1,11 @@
-import { BaseInteraction, Events } from 'discord.js';
+import { BaseInteraction, Events, InteractionType } from 'discord.js';
 import { Client } from '../types';
 
 export default {
 	event: Events.InteractionCreate,
 	once: false,
 	async execute(interaction: BaseInteraction) {
-		if(!interaction.isChatInputCommand()) return;
+		if(!interaction.isAutocomplete()) return;
 	
 		const client: Client = interaction.client;
 
@@ -16,11 +16,15 @@ export default {
 			return;
 		}
 
+		if(!command.autocomplete)
+		{
+			console.error(`The ${interaction.commandName} command does not have an autocomplete function.`);
+		}
+
 		try {
-			await command.execute(interaction);
+			await command.autocomplete(interaction);
 		} catch (error) {
 			console.error(error);
-			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
 		}
 	},
 };
