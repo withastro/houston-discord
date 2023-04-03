@@ -29,7 +29,7 @@ const rest = new REST({version: '10'}).setToken(process.env.DISCORD_TOKEN!);
 	try {
 		const commands: RESTPostAPIApplicationCommandsJSONBody[] = [];
 
-		const commandList = Array.from<Command>(client.commands.values());
+		const commandList = Array.from<Command>(client.commands!.values());
 
 		for(const i in commandList)
 		{

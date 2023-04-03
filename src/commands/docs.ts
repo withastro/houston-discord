@@ -1,12 +1,37 @@
-import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction, AutocompleteInteraction } from "discord.js";
 import algoliasearch from "algoliasearch";
 import { categories, SearchHit } from "../types";
+import { getDefaultEmbed } from "../utils/embeds.js";
 
 const client = algoliasearch("7AFBU8EPJU", "4440670147c44d744fd8da35ff652518");
 const index = client.initIndex("astro");
 
 const replaceTags = (input: string): string => {
 	return input.replace("&lt;", '<').replace("&gt;", ">");
+}
+
+const generateNameFromHit = (hit: SearchHit): string => {
+	return reduce(`${hit.hierarchy.lvl0}: ${hit.hierarchy.lvl1}${hit.hierarchy.lvl2? ` - ${hit.hierarchy.lvl2}` : ''} ${(hit.hierarchy.lvl2 && hit.anchor)? `#${hit.anchor}` : ''}`, 100, "...");
+}
+
+const reduce = (string: string, limit: number, delimiter: string | null): string =>
+{
+
+	if(string.length > limit)
+	{
+		return string.substring(0, limit - (delimiter? delimiter.length : 0)) + (delimiter? delimiter : "");
+	}
+
+	return string;
+}
+
+const returnObjectResult = async (interaction: ChatInputCommandInteraction, object: SearchHit) =>
+{
+	const embed = getDefaultEmbed();
+
+	embed.setTitle(generateNameFromHit(object)).setDescription(`[read more](${object.url})`);
+
+	await interaction.editReply({embeds: [embed]});
 }
 
 export default {
@@ -17,7 +42,8 @@ export default {
 			option
 				.setName("query")
 				.setDescription("The query to search for")
-				.setRequired(true))
+				.setRequired(true)
+				.setAutocomplete(true))
 		.addBooleanOption(option =>
 			option.setName("hidden")
 			.setDescription("Wether this should only be shown to you. Defaults to true")
@@ -44,13 +70,23 @@ export default {
 
 		if(interaction.channelId != "916064458814681218")
 		{
-			const embed = new EmbedBuilder().setTitle("This command is still in beta and can therefor not yet be accessed in this channel").setColor("#FF5D00");
+			const embed = getDefaultEmbed().setTitle("This command is still in beta and can therefor not yet be accessed in this channel");
 			await interaction.reply({embeds: [embed], ephemeral: true});
 
 			return;
 		}
 
 		await interaction.deferReply({ephemeral: interaction.options.getBoolean("hidden") ?? true});
+
+		try {
+			const reply: SearchHit = await index.getObject(interaction.options.getString("query")!);
+			await returnObjectResult(interaction, reply);
+			return;
+		}
+		catch 
+		{
+			// reply was 404 because a real query was provided and not an object ID from autocomplete. No action needed.
+		}
 
 		const reply = await index.search<SearchHit>(interaction.options.getString("query")!, {
 			facetFilters: [["lang:" + (interaction.options.getString('language') ?? "en")]],
@@ -88,13 +124,12 @@ export default {
 		
 		const embeds: EmbedBuilder[] = [];
 
-		embeds.push(new EmbedBuilder().setTitle(`Results for "${interaction.options.getString("query")}"`).setColor("#FF5D00"))
+		embeds.push(getDefaultEmbed().setTitle(`Results for "${interaction.options.getString("query")}"`))
 		
 		for(const category in categories)
 		{
-			const embed = new EmbedBuilder()
-				.setTitle(category)
-				.setColor("#FF5D00");
+			const embed = getDefaultEmbed()
+				.setTitle(category);
 
 			let body = ""
 
@@ -170,5 +205,24 @@ export default {
 		}
 
 		await interaction.editReply({embeds: embeds});
+	},
+	async autocomplete(interaction: AutocompleteInteraction)
+	{
+		const reply = await index.search<SearchHit>(interaction.options.getString("query")!, {
+			facetFilters: [["lang:" + (interaction.options.getString('language') ?? "en")]],
+			hitsPerPage: 20,
+			distinct: true
+		})
+
+		const hits = reply.hits;
+
+		await interaction.respond(
+			hits.map(hit => {
+				return {
+					name: generateNameFromHit(hit),
+					value: hit.objectID
+				}
+			})
+		)
 	}
 }
