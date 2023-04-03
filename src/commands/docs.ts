@@ -1,10 +1,14 @@
-import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction, AutocompleteInteraction, Embed } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction, AutocompleteInteraction } from "discord.js";
 import algoliasearch from "algoliasearch";
-import { SearchHit } from "../types";
+import { categories, SearchHit } from "../types";
 import { getDefaultEmbed } from "../utils/embeds.js";
 
 const client = algoliasearch("7AFBU8EPJU", "4440670147c44d744fd8da35ff652518");
 const index = client.initIndex("astro");
+
+const replaceTags = (input: string): string => {
+	return input.replace("&lt;", '<').replace("&gt;", ">");
+}
 
 const generateNameFromHit = (hit: SearchHit): string => {
 	return reduce(`${hit.hierarchy.lvl0}: ${hit.hierarchy.lvl1}${hit.hierarchy.lvl2? ` - ${hit.hierarchy.lvl2}` : ''} ${(hit.hierarchy.lvl2 && hit.anchor)? `#${hit.anchor}` : ''}`, 100, "...");
@@ -21,10 +25,19 @@ const reduce = (string: string, limit: number, delimiter: string | null): string
 	return string;
 }
 
+const returnObjectResult = async (interaction: ChatInputCommandInteraction, object: SearchHit) =>
+{
+	const embed = getDefaultEmbed();
+
+	embed.setTitle(generateNameFromHit(object)).setDescription(`[read more](${object.url})`);
+
+	await interaction.editReply({embeds: [embed]});
+}
+
 export default {
 	data: new SlashCommandBuilder()
 		.setName("docs")
-		.setDescription("Search the astro docs by headings")
+		.setDescription("Search the docs")
 		.addStringOption(option =>
 			option
 				.setName("query")
@@ -55,7 +68,7 @@ export default {
 					)),
 	async execute(interaction: ChatInputCommandInteraction) {
 
-		if(interaction.channelId != "916064458814681218")
+		if(interaction.channelId != "1036711421439901758")
 		{
 			const embed = getDefaultEmbed().setTitle("This command is still in beta and can therefor not yet be accessed in this channel");
 			await interaction.reply({embeds: [embed], ephemeral: true});
@@ -65,22 +78,133 @@ export default {
 
 		await interaction.deferReply({ephemeral: interaction.options.getBoolean("hidden") ?? true});
 
-		let reply: SearchHit;
-
-		const embed = getDefaultEmbed();
-
 		try {
-			reply = await index.getObject(interaction.options.getString("query")!)
-		}
-		catch {
-			embed.setTitle("No results found").setDescription("No result was found for this query. To search for arbitrary strings, please use `/docsearch`.");
-			await interaction.editReply({embeds: [embed]});
+			const reply: SearchHit = await index.getObject(interaction.options.getString("query")!);
+			await returnObjectResult(interaction, reply);
 			return;
 		}
+		catch 
+		{
+			// reply was 404 because a real query was provided and not an object ID from autocomplete. No action needed.
+		}
 
-		embed.setTitle(generateNameFromHit(reply)).setDescription(`[read more](${reply.url})`);
+		const reply = await index.search<SearchHit>(interaction.options.getString("query")!, {
+			facetFilters: [["lang:" + (interaction.options.getString('language') ?? "en")]],
+			highlightPreTag: "**",
+			highlightPostTag: "**",
+			hitsPerPage: 20,
+			snippetEllipsisText: '…',
+			attributesToRetrieve: ["hierarchy.lvl0","hierarchy.lvl1","hierarchy.lvl2","hierarchy.lvl3","hierarchy.lvl4","hierarchy.lvl5","hierarchy.lvl6","content","type","url"],
+			attributesToSnippet: ["hierarchy.lvl1:10","hierarchy.lvl2:10","hierarchy.lvl3:10","hierarchy.lvl4:10","hierarchy.lvl5:10","hierarchy.lvl6:10","content:10"]
+		})
+ 
+		const items = reply.hits.map(hit => {
+			const url = new URL(hit.url);
+			if(url.hash == "#overview") url.hash = "";
 
-		await interaction.editReply({embeds: [embed]});
+			return {
+				...hit,
+				url: url.href
+			}
+		})
+
+		const categories: categories = {};
+
+		items.forEach(item => {
+
+			if(!categories[item.hierarchy.lvl0])
+			{
+				categories[item.hierarchy.lvl0] = [];
+			}
+			categories[item.hierarchy.lvl0].push(item);
+		});
+
+		// exclude tutorials
+		delete categories["Tutorials"]
+		
+		const embeds: EmbedBuilder[] = [];
+
+		embeds.push(getDefaultEmbed().setTitle(`Results for "${interaction.options.getString("query")}"`))
+		
+		for(const category in categories)
+		{
+			const embed = getDefaultEmbed()
+				.setTitle(category);
+
+			let body = ""
+
+			let items: {[heading: string]: SearchHit[]} = {};
+
+			for(let i = 0; i < categories[category].length && i < 5; i++)
+			{
+				const item = categories[category][i];
+				if(!item._snippetResult)
+					return;
+
+				if(!items[item.hierarchy[`lvl1`]])
+				{
+					items[item.hierarchy[`lvl1`]] = [];
+				}
+
+				items[item.hierarchy[`lvl1`]].push(item);
+			}
+
+			for(const subjectName in items)
+			{
+				const subject = items[subjectName];
+
+				for(let i = 0; i < subject.length; i++)
+				{
+					const item = subject[i];
+
+					let hierarchy = "";
+
+					for(let i = 1; i < 7; i++)
+					{
+						if(item.hierarchy[`lvl${i}`])
+						{
+							let string = (i != 1)? " > " : "";
+
+							string += item.hierarchy[`lvl${i}`]
+
+							hierarchy += string;
+						}
+						else
+						{
+							break;
+						}
+					}
+
+					let result = "";
+
+					if(item._snippetResult)
+					{
+						if(item.type == "content")
+						{
+							result = item._snippetResult.content.value;
+						}
+						else
+						{
+							result = item._snippetResult.hierarchy[item.type].value;
+						}
+
+						body += `[🔗](${item.url}) **${replaceTags(hierarchy)}**\n`
+						body += `[${replaceTags(result.substring(0, 66))}](${item.url})\n`
+					}
+				}
+			}
+
+			embed.setDescription(body)
+
+			embeds.push(embed)
+		}
+
+		if(embeds.length == 1)
+		{
+			embeds[0].setTitle(`No results found for "${interaction.options.getString("query")}"`);
+		}
+
+		await interaction.editReply({embeds: embeds});
 	},
 	async autocomplete(interaction: AutocompleteInteraction)
 	{
