@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction, AutocompleteInteraction, Embed } from "discord.js";
 import algoliasearch from "algoliasearch";
-import { categories, SearchHit } from "../types";
-import { getDefaultEmbed } from "../utils";
+import { SearchHit } from "../types";
+import { getDefaultEmbed } from "../utils/embeds.js";
 
 const client = algoliasearch("7AFBU8EPJU", "4440670147c44d744fd8da35ff652518");
 const index = client.initIndex("astro");
@@ -24,7 +24,7 @@ const reduce = (string: string, limit: number, delimiter: string | null): string
 export default {
 	data: new SlashCommandBuilder()
 		.setName("docs")
-		.setDescription("Search the docs")
+		.setDescription("Search the astro docs by headings")
 		.addStringOption(option =>
 			option
 				.setName("query")
@@ -55,7 +55,7 @@ export default {
 					)),
 	async execute(interaction: ChatInputCommandInteraction) {
 
-		if(interaction.channelId != "1036711421439901758")
+		if(interaction.channelId != "916064458814681218")
 		{
 			const embed = getDefaultEmbed().setTitle("This command is still in beta and can therefor not yet be accessed in this channel");
 			await interaction.reply({embeds: [embed], ephemeral: true});

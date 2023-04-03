@@ -9,7 +9,7 @@ export default {
 	
 		const client: Client = interaction.client;
 
-		const command = client.commands.get(interaction.commandName);
+		const command = client.commands!.get(interaction.commandName);
 
 		if (!command) {
 			console.error(`No command matching ${interaction.commandName} was found.`);

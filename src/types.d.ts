@@ -1,4 +1,4 @@
-import discordjs, {SlashCommandBuilder} from "discord.js"
+import discordjs, {SlashCommandBuilder, Collection} from "discord.js"
 
 declare interface Command {
 	data: SlashCommandBuilder,
@@ -24,7 +24,7 @@ declare interface SearchHit {
 	readonly objectID: string;
     readonly _highlightResult?: {} | undefined;
     readonly _snippetResult?: any | undefined;
-    readonly _rankingInfo?: RankingInfo | undefined;
+    readonly _rankingInfo?: any | undefined;
     readonly _distinctSeqID?: number | undefined;
 	readonly hierarchy: any;
 	readonly url: string;
