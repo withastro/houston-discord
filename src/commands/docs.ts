@@ -2,13 +2,10 @@ import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction, Autocom
 import algoliasearch from "algoliasearch";
 import { categories, SearchHit } from "../types";
 import { getDefaultEmbed } from "../utils/embeds.js";
+import { decode } from "html-entities";
 
 const client = algoliasearch("7AFBU8EPJU", "4440670147c44d744fd8da35ff652518");
 const index = client.initIndex("astro");
-
-const replaceTags = (input: string): string => {
-	return input.replace("&lt;", '<').replace("&gt;", ">");
-}
 
 const generateNameFromHit = (hit: SearchHit): string => {
 	return reduce(`${hit.hierarchy.lvl0}: ${hit.hierarchy.lvl1}${hit.hierarchy.lvl2? ` - ${hit.hierarchy.lvl2}` : ''} ${(hit.hierarchy.lvl2 && hit.anchor)? `#${hit.anchor}` : ''}`, 100, "...");
@@ -29,7 +26,7 @@ const returnObjectResult = async (interaction: ChatInputCommandInteraction, obje
 {
 	const embed = getDefaultEmbed();
 
-	embed.setTitle(generateNameFromHit(object)).setDescription(`[read more](${object.url})`);
+	embed.setTitle(decode(generateNameFromHit(object))).setDescription(`[read more](${object.url})`);
 
 	await interaction.editReply({embeds: [embed]});
 }
@@ -129,7 +126,7 @@ export default {
 		for(const category in categories)
 		{
 			const embed = getDefaultEmbed()
-				.setTitle(category);
+				.setTitle(decode(category));
 
 			let body = ""
 
@@ -188,8 +185,8 @@ export default {
 							result = item._snippetResult.hierarchy[item.type].value;
 						}
 
-						body += `[🔗](${item.url}) **${replaceTags(hierarchy)}**\n`
-						body += `[${replaceTags(result.substring(0, 66))}](${item.url})\n`
+						body += decode(`[🔗](${item.url}) **${hierarchy}**\n`)
+						body += decode(`[${result.substring(0, 66)}](${item.url})\n`)
 					}
 				}
 			}
