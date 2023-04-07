@@ -70,7 +70,7 @@ export default {
 
 		if(interaction.channelId != "916064458814681218")
 		{
-			const embed = getDefaultEmbed().setTitle("This command is still in beta and can therefor not yet be accessed in this channel");
+			const embed = getDefaultEmbed().setTitle("This command is still in beta and can therefore not yet be accessed in this channel");
 			await interaction.reply({embeds: [embed], ephemeral: true});
 
 			return;
