@@ -8,7 +8,7 @@ const client = algoliasearch("7AFBU8EPJU", "4440670147c44d744fd8da35ff652518");
 const index = client.initIndex("astro");
 
 const generateNameFromHit = (hit: SearchHit): string => {
-	return reduce(`${hit.hierarchy.lvl0}: ${hit.hierarchy.lvl1}${hit.hierarchy.lvl2? ` - ${hit.hierarchy.lvl2}` : ''} ${(hit.hierarchy.lvl2 && hit.anchor)? `#${hit.anchor}` : ''}`, 100, "...");
+	return decode(reduce(`${hit.hierarchy.lvl0}: ${hit.hierarchy.lvl1}${hit.hierarchy.lvl2? ` - ${hit.hierarchy.lvl2}` : ''} ${(hit.hierarchy.lvl2 && hit.anchor)? `#${hit.anchor}` : ''}`, 100, "..."));
 }
 
 const reduce = (string: string, limit: number, delimiter: string | null): string =>
