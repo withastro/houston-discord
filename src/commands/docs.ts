@@ -65,14 +65,6 @@ export default {
 					)),
 	async execute(interaction: ChatInputCommandInteraction) {
 
-		if(interaction.channelId != "916064458814681218")
-		{
-			const embed = getDefaultEmbed().setTitle("This command is still in beta and can therefore not yet be accessed in this channel");
-			await interaction.reply({embeds: [embed], ephemeral: true});
-
-			return;
-		}
-
 		await interaction.deferReply({ephemeral: interaction.options.getBoolean("hidden") ?? true});
 
 		try {
