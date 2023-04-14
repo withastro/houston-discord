@@ -103,17 +103,22 @@ export default {
 
 		await interaction.deferReply({ephemeral: interaction.options.getBoolean("hidden") ?? true});
 
-		try {
-			const reply: SearchHit = await index.getObject(interaction.options.getString("query")!);
+		if(interaction.options.getString("query")!.startsWith("auto-"))
+		{
+			const reply: SearchHit = await index.getObject(interaction.options.getString("query")!.substring(5));
 			await returnObjectResult(interaction, reply);
 			return;
 		}
-		catch 
+		
+		
+		let query = interaction.options.getString("query")!;
+
+		if(query.startsWith("user-"))
 		{
-			// reply was 404 because a real query was provided and not an object ID from autocomplete. No action needed.
+			query = query.substring(5);
 		}
 
-		const reply = await index.search<SearchHit>(interaction.options.getString("query")!, {
+		const reply = await index.search<SearchHit>(query, {
 			facetFilters: [["lang:" + (interaction.options.getString('language') ?? "en")]],
 			highlightPreTag: "**",
 			highlightPostTag: "**",
@@ -149,7 +154,7 @@ export default {
 		
 		const embeds: EmbedBuilder[] = [];
 
-		embeds.push(getDefaultEmbed().setTitle(`Results for "${interaction.options.getString("query")}"`))
+		embeds.push(getDefaultEmbed().setTitle(`Results for "${query}"`))
 		
 		for(const category in categories)
 		{
@@ -226,7 +231,7 @@ export default {
 
 		if(embeds.length == 1)
 		{
-			embeds[0].setTitle(`No results found for "${interaction.options.getString("query")}"`);
+			embeds[0].setTitle(`No results found for "${query}"`);
 		}
 
 		await interaction.editReply({embeds: embeds});
@@ -239,15 +244,23 @@ export default {
 			distinct: true
 		})
 
-		const hits = reply.hits;
+		const hits = reply.hits.map(hit => {
+			return {
+				name: generateNameFromHit(hit),
+				value: `auto-${hit.objectID}`
+			}
+		});
+
+		if(interaction.options.getString("query")!.trim() != "")
+		{
+			hits.unshift({
+				name: `"${interaction.options.getString("query")!}"`,
+				value: `user-${interaction.options.getString("query")!}`
+			})
+		}
 
 		await interaction.respond(
-			hits.map(hit => {
-				return {
-					name: generateNameFromHit(hit),
-					value: hit.objectID
-				}
-			})
+			hits
 		)
 	}
 }
