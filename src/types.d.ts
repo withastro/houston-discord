@@ -20,14 +20,20 @@ declare type categories = {
 	[category: string]: SearchHit[];
 }
 
+declare interface Weight {
+	pageRank: number,
+	level: number,
+	position: number
+}
+
 declare interface SearchHit {
 	readonly objectID: string;
     readonly _highlightResult?: {} | undefined;
     readonly _snippetResult?: any | undefined;
-    readonly _rankingInfo?: any | undefined;
-    readonly _distinctSeqID?: number | undefined;
+	readonly weight: Weight;
 	readonly hierarchy: any;
 	readonly url: string;
 	readonly anchor: string;
+	readonly content?: string;
 	readonly type: "content" | `lvl${number}`;
 }

@@ -26,7 +26,43 @@ const returnObjectResult = async (interaction: ChatInputCommandInteraction, obje
 {
 	const embed = getDefaultEmbed();
 
-	embed.setTitle(decode(generateNameFromHit(object))).setDescription(`[read more](${object.url})`);
+	embed.setTitle(decode(generateNameFromHit(object)));
+
+	let description = "";
+
+	if(interaction.channelId == "916064458814681218" || (interaction.channel?.isThread() && interaction.channel.parentId == "916064458814681218"))
+	{
+		const facetFilters: string[][] = [["lang:" + (interaction.options.getString('language') ?? "en")], ["type:content"]];
+
+		let highest = 0;
+
+		for(let i = 0; i <= 6; i++)
+		{
+			if(!object.hierarchy[`lvl${i}`])
+				break;
+
+			highest = i;
+			
+			facetFilters.push([`hierarchy.lvl${i}:${decode(object.hierarchy[`lvl${i}`])}`]);
+		}
+
+		const hits = (await index.search<SearchHit>("", {
+			facetFilters: facetFilters,
+			attributesToRetrieve: ["hierarchy.lvl0","hierarchy.lvl1","hierarchy.lvl2","hierarchy.lvl3","hierarchy.lvl4","hierarchy.lvl5","hierarchy.lvl6","content","type","url", "weight"],
+			distinct: false
+		})).hits.filter(hit => !hit.hierarchy[`lvl${highest + 1}`]);
+
+		for(let i = 0; i < hits.length; i++)
+		{
+			if(object.hierarchy[`lvl${i}`] == "")
+				continue;
+			description += decode(hits[i].content) + "\n";
+		}
+	}
+
+	description += `\n[read more](${object.url})`;
+
+	embed.setDescription(description);
 
 	await interaction.editReply({embeds: [embed]});
 }
