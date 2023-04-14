@@ -7,7 +7,7 @@ const FORUM_ID = "1019713903481081876";
 const OUTPUT_ID = "916064458814681218";
 
 export default {
-	time: "* * * * * *",
+	time: "0 0 * * *",
 	async execute(client: Client) {
 		const guild = await client.guilds.fetch(GUILD_ID);
 
@@ -32,7 +32,7 @@ export default {
 			})
 		})
 
-		const embed = getDefaultEmbed().setTitle("Monthly tags report");
+		const embed = getDefaultEmbed().setTitle("Daily tags report for the last 30 days");
 
 		let description = "";
 
