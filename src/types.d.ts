@@ -19,6 +19,9 @@ declare interface Event {
 declare type categories = {
 	[category: string]: SearchHit[];
 }
+declare type Tags = {
+	[tag: string]: number;
+}
 
 declare interface Weight {
 	pageRank: number,
@@ -36,4 +39,9 @@ declare interface SearchHit {
 	readonly anchor: string;
 	readonly content?: string;
 	readonly type: "content" | `lvl${number}`;
+}
+
+declare interface Scheduled {
+	time: string,
+	execute: Function
 }

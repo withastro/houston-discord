@@ -1,8 +1,11 @@
-import discordjs, { Collection, REST, Routes, RESTPostAPIApplicationCommandsJSONBody } from "discord.js";
+import discordjs, { Collection, REST, Routes, RESTPostAPIApplicationCommandsJSONBody, IntentsBitField } from "discord.js";
 import fs from "node:fs";
-import { Client, Command, Event } from "../types";
+import { Client, Command, Event, Scheduled } from "../types";
+import { scheduleJob } from "node-schedule";
 
-const client: Client = new discordjs.Client({intents: []});
+const client: Client = new discordjs.Client({intents: [
+	IntentsBitField.Flags.Guilds
+]});
 
 client.commands = new Collection<string, any>();
 
@@ -61,6 +64,20 @@ for (const file of eventFiles) {
 	} else {
 		client.on(event.event, (...args) => event.execute(...args));
 	}
+}
+
+const scheduledPath = new URL("../scheduled", import.meta.url)
+const scheduledFiles = fs.readdirSync(scheduledPath).filter(file => file.endsWith('.js'));
+
+for (const file of scheduledFiles) {
+	const filePath = new URL(`../scheduled/${file}`, import.meta.url).toString();
+
+	const scheduled: Scheduled = (await import(filePath)).default;
+
+	scheduleJob(scheduled.time, async () => {
+		scheduled.execute(client);
+	})
+	
 }
 
 client.login(process.env.DISCORD_TOKEN);
