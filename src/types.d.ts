@@ -19,8 +19,10 @@ declare interface Event {
 declare type categories = {
 	[category: string]: SearchHit[];
 }
-declare type Tags = {
-	[tag: string]: number;
+
+declare type Tag = {
+	id: string;
+	count: number;
 }
 
 declare interface Weight {

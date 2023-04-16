@@ -1,5 +1,5 @@
 import { ForumChannel, TextChannel } from "discord.js";
-import { Client, Tags } from "../types"
+import { Client, Tag } from "../types"
 import { getDefaultEmbed } from "../utils/embeds.js";
 
 const GUILD_ID = "830184174198718474";
@@ -19,26 +19,30 @@ export default {
 
 		const threads = (await forum.threads.fetchActive()).threads.filter(x => x.createdAt! > date);
 
-		let tags: Tags = {};
+		let tags: Tag[] = [];
 
 		threads.forEach(thread => {
 			thread.appliedTags.forEach(tag => {
-				if(!tags[tag])
+				if(tags.filter(stag => stag.id == tag).length == 0)
 				{
-					tags[tag] = 0;
+					tags.push({id: tag, count: 0})
 				}
 
-				tags[tag] += 1;
+				tags[tags.findIndex(stag => stag.id == tag)].count++;
 			})
 		})
+
+		tags.sort((a, b) => b.count - a.count);
+		console.log(tags);
 
 		const embed = getDefaultEmbed().setTitle("Weekly tags report for the last 30 days");
 
 		let description = "";
 
-		for(const tag in tags)
+		for(let i = 0; i < tags.length; i++)
 		{
-			const forumTag = forum.availableTags.find(forumTag => forumTag.id == tag);
+			const tag = tags[i];
+			const forumTag = forum.availableTags.find(forumTag => forumTag.id == tag.id);
 
 			let emoji = "";
 
@@ -56,7 +60,7 @@ export default {
 					}
 				}
 
-				description += `${emoji}${forumTag?.name}: ${tags[tag]}\n`
+				description += `${emoji}${forumTag?.name}: ${tags[i].count}\n`
 			}
 		}
 
