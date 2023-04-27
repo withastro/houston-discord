@@ -9,9 +9,9 @@ const OUTPUT_ID = "916064458814681218";
 export default {
 	time: "0 0 * * 1",
 	async execute(client: Client) {
-		const guild = await client.guilds.fetch(GUILD_ID);
+		const guild = await client.guilds.fetch(process.env.GUILD_ID!);
 
-		const forum: ForumChannel = await guild.channels.fetch(FORUM_ID) as ForumChannel;
+		const forum: ForumChannel = await guild.channels.fetch(process.env.SUPPORT_CHANNEL!) as ForumChannel;
 
 		const date = new Date();
 
