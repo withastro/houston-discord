@@ -2,10 +2,6 @@ import { ForumChannel, TextChannel } from "discord.js";
 import { Client, Tag } from "../types"
 import { getDefaultEmbed } from "../utils/embeds.js";
 
-const GUILD_ID = "830184174198718474";
-const FORUM_ID = "1019713903481081876";
-const OUTPUT_ID = "916064458814681218";
-
 export default {
 	time: "0 0 * * 1",
 	async execute(client: Client) {
@@ -66,7 +62,7 @@ export default {
 
 		embed.setDescription(description);
 
-		const channel = await client.channels.fetch(OUTPUT_ID)! as TextChannel;
+		const channel = await client.channels.fetch(process.env.SUPPORT_SQUAD_CHANNEL!)! as TextChannel;
 
 		channel.send({embeds: [embed]});
 	}
