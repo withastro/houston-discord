@@ -3,7 +3,7 @@ import { Client, Tag } from "../types"
 import { getDefaultEmbed } from "../utils/embeds.js";
 
 export default {
-	time: "30 12 * * 1",
+	time: "0 0 * * 1",
 	async execute(client: Client) {
 		const guild = await client.guilds.fetch(process.env.GUILD_ID!);
 
