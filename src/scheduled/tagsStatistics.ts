@@ -28,10 +28,17 @@ export default {
 			})
 		})
 
+		forum.availableTags.forEach(tag => {
+			if(tags.filter(stag => stag.id == tag.id).length == 0)
+			{
+				tags.push({id: tag.id, count: 0})
+			}
+		})
+
 		tags.sort((a, b) => b.count - a.count);
 		console.log(tags);
 
-		const embed = getDefaultEmbed().setTitle("Weekly tags report for the last 30 days");
+		const embed = getDefaultEmbed().setTitle("Weekly tags report for the last month");
 
 		let description = "";
 
