@@ -27,7 +27,7 @@ const getTagName = async (guild: Guild, fullTagList: GuildForumTag[], id: string
 }
 
 export default {
-	time: "* * * * * *",
+	time: "0 0 * * 1",
 	async execute(client: Client) {
 		const guild = await client.guilds.fetch(process.env.GUILD_ID!);
 
