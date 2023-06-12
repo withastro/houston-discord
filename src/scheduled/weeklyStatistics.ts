@@ -27,7 +27,7 @@ const getTagName = async (guild: Guild, fullTagList: GuildForumTag[], id: string
 }
 
 export default {
-	time: "0 0 * * 1",
+	time: "* * * * * *",
 	async execute(client: Client) {
 		const guild = await client.guilds.fetch(process.env.GUILD_ID!);
 
@@ -40,6 +40,8 @@ export default {
 		const threads = (await forum.threads.fetchActive()).threads.filter(x => x.createdAt! > date);
 
 		const titleEmbed = getDefaultEmbed().setTitle("Weekly support statistics for the last month");
+
+		let embeds = [titleEmbed];
 
 		const redirectsEmbed = getDefaultEmbed().setTitle("Support-ai redirects")
 		// Support-ai redirects
@@ -65,9 +67,9 @@ export default {
 			}
 
 			redirectsEmbed.setDescription(`I sent <#${process.env.SUPPORT_AI_CHANNEL!}> redirects in ${count}/${threads.size} support threads`);
-		}
 
-		const tagEmbed = getDefaultEmbed().setTitle("Tags");
+			embeds.push(redirectsEmbed);
+		}
 
 		// Tags
 		{
@@ -92,24 +94,55 @@ export default {
 			})
 
 			let description = "";
+			let embedCount = 0;
 
 			for(const tagId in tags)
 			{
-				description += `${await getTagName(guild, forum.availableTags, tagId)}: ${tags[tagId][tagId]}\n`;
+				let localDescription = ""
+				localDescription += `${await getTagName(guild, forum.availableTags, tagId)}: ${tags[tagId][tagId]}\n`;
 
 				for(const subTagId in tags[tagId])
 				{
 					if(subTagId == tagId)
 						continue;
-					description += `\* ${await getTagName(guild, forum.availableTags, subTagId)}: ${tags[tagId][subTagId]}\n`
+					
+					localDescription += `\* ${await getTagName(guild, forum.availableTags, subTagId)}: ${tags[tagId][subTagId]}\n`;
+
 				}
+
+				localDescription += "\n";
+
+				if(description.length + localDescription.length > 4096)
+				{
+					let embed = getDefaultEmbed();
+
+					if(embedCount == 0)
+					{
+						embed.setTitle("Tags");
+					}
+
+					embed.setDescription(description);
+					description = "";
+					embeds.push(embed);
+					embedCount += 1;
+				}
+
+				description += localDescription;
 			}
 
-			tagEmbed.setDescription(description);
+				let embed = getDefaultEmbed();
+
+				if(embedCount == 0)
+				{
+					embed.setTitle("Tags");
+				}
+
+				embed.setDescription(description);
+				embeds.push(embed);
 		}
 
 		const channel = await client.channels.fetch(process.env.SUPPORT_SQUAD_CHANNEL!)! as TextChannel;
 
-		channel.send({embeds: [titleEmbed, redirectsEmbed, tagEmbed]});
+		channel.send({embeds});
 	}
 }
