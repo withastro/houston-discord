@@ -39,9 +39,11 @@ export default {
 
 		const threads = (await forum.threads.fetchActive()).threads.filter(x => x.createdAt! > date);
 
+		const channel = await client.channels.fetch(process.env.SUPPORT_SQUAD_CHANNEL!)! as TextChannel;
+
 		const titleEmbed = getDefaultEmbed().setTitle("Weekly support statistics for the last month");
 
-		let embeds = [titleEmbed];
+		channel.send({embeds: [titleEmbed]});
 
 		const redirectsEmbed = getDefaultEmbed().setTitle("Support-ai redirects")
 		// Support-ai redirects
@@ -68,7 +70,7 @@ export default {
 
 			redirectsEmbed.setDescription(`I sent <#${process.env.SUPPORT_AI_CHANNEL!}> redirects in ${count}/${threads.size} support threads`);
 
-			embeds.push(redirectsEmbed);
+			channel.send({embeds: [redirectsEmbed]});
 		}
 
 		// Tags
@@ -123,7 +125,7 @@ export default {
 
 					embed.setDescription(description);
 					description = "";
-					embeds.push(embed);
+					channel.send({embeds: [embed]});
 					embedCount += 1;
 				}
 
@@ -138,11 +140,7 @@ export default {
 				}
 
 				embed.setDescription(description);
-				embeds.push(embed);
+				channel.send({embeds: [embed]});
 		}
-
-		const channel = await client.channels.fetch(process.env.SUPPORT_SQUAD_CHANNEL!)! as TextChannel;
-
-		channel.send({embeds});
 	}
 }
