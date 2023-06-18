@@ -58,9 +58,6 @@ export default {
 
 					const msgs = await thread.messages.fetch();
 					msgs.forEach(message => {
-						console.log(message.author.id)
-						console.log(client.user!.id)
-						console.log(message.author.id == client.user!.id)
 						if(message.author.id == client.user!.id)
 							count++;
 							return;
