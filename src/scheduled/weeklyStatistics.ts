@@ -72,13 +72,13 @@ export default {
 
 		// Tags
 		{
-			let tags: any = [];
+			const tags: { [tag: string]: { [subTag: string]: number } } = {};
 
 			threads.forEach(thread => {
 				thread.appliedTags.forEach(tag => {
 					if(!tags[tag])
 					{
-						tags[tag] = [];
+						tags[tag] = {};
 					}
 
 					thread.appliedTags.forEach(subTag => {
@@ -97,16 +97,22 @@ export default {
 
 			for(const tagId in tags)
 			{
-				let localDescription = ""
-				localDescription += `${await getTagName(guild, forum.availableTags, tagId)}: ${tags[tagId][tagId]}\n`;
+				const tagName = await getTagName(guild, forum.availableTags, tagId);
+				let localDescription = `**${tagName}** (${tags[tagId][tagId]})\n`;
 
-				for(const subTagId in tags[tagId])
-				{
-					if(subTagId == tagId)
-						continue;
-					
-					localDescription += `\* ${await getTagName(guild, forum.availableTags, subTagId)}: ${tags[tagId][subTagId]}\n`;
+				/** Sub tags sorted descending by count, excluding tags that show up just once. */
+				const subTags = Object.entries(tags[tagId])
+					.sort(([, countA],[, countB]) => countB - countA)
+					.filter(([subTagId, count]) => subTagId !== tagId && count > 1);
 
+				if (subTags.length) {
+					const subDescriptions = []
+					for(const [id, count] of subTags)
+					{
+						const subTagName = await getTagName(guild, forum.availableTags, id);
+						subDescriptions.push(`${subTagName} (${count})`);
+					}
+					localDescription += `+ ${subDescriptions.join(' / ')}\n`;
 				}
 
 				localDescription += "\n";
