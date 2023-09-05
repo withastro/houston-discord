@@ -27,7 +27,7 @@ const getTagName = async (guild: Guild, fullTagList: GuildForumTag[], id: string
 }
 
 export default {
-	time: "0 0 * * 1",
+	time: "* * * * * *",
 	async execute(client: Client) {
 		const guild = await client.guilds.fetch(process.env.GUILD_ID!);
 
@@ -72,28 +72,32 @@ export default {
 
 		// Tags
 		{
-			const tags: { [tag: string]: { [subTag: string]: number } } = {};
+			let unsortedTags: { [tag: string]: { [subTag: string]: number } } = {};
 
 			threads.forEach(thread => {
 				thread.appliedTags.forEach(tag => {
-					if(!tags[tag])
+					if(!unsortedTags[tag])
 					{
-						tags[tag] = {};
+						unsortedTags[tag] = {};
 					}
 
 					thread.appliedTags.forEach(subTag => {
-						if(!tags[tag][subTag])
+						if(!unsortedTags[tag][subTag])
 						{
-							tags[tag][subTag] = 0;
+							unsortedTags[tag][subTag] = 0;
 						}
 
-						tags[tag][subTag]++;
+						unsortedTags[tag][subTag]++;
 					})
 				})
 			})
 
 			let description = "";
 			let embedCount = 0;
+
+			let tags = Object.fromEntries(Object.entries(unsortedTags).sort((a, b) => {
+				return unsortedTags[a[0]][a[0]] - unsortedTags[b[0]][b[0]];
+			}).reverse());
 
 			for(const tagId in tags)
 			{
