@@ -1,5 +1,5 @@
-import { AwaitMessagesOptions, ForumChannel, Guild, GuildForumTag, Message, MessageCollectorOptions, TextChannel } from "discord.js";
-import { Client, Tag } from "../types"
+import { ForumChannel, Guild, GuildForumTag, TextChannel } from "discord.js";
+import { Client } from "../types"
 import { getDefaultEmbed } from "../utils/embeds.js";
 
 const getTagName = async (guild: Guild, fullTagList: GuildForumTag[], id: string) =>
@@ -27,7 +27,7 @@ const getTagName = async (guild: Guild, fullTagList: GuildForumTag[], id: string
 }
 
 export default {
-	time: "0 0 * * 1",
+	time: process.env.STATS_SCHEDULE,
 	async execute(client: Client) {
 		const guild = await client.guilds.fetch(process.env.GUILD_ID!);
 

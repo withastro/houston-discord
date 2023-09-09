@@ -5,7 +5,7 @@ import { getDefaultEmbed } from "../utils/embeds.js";
 const titles = ["Quiet in here?", "No-one around right now?", "Still waiting for an answer?"]
 
 export default {
-	time: "*/15 * * * *",
+	time: process.env.SUPPORT_REDIRECT_SCHEDULE,
 	async execute(client: Client) {
 		const guild = await client.guilds.fetch(process.env.GUILD_ID!);
 		
