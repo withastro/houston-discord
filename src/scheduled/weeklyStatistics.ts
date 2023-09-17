@@ -1,4 +1,4 @@
-import { ForumChannel, Guild, GuildForumTag, TextChannel } from "discord.js";
+import { EmbedBuilder, ForumChannel, Guild, GuildForumTag, TextChannel } from "discord.js";
 import { Client } from "../types"
 import { getDefaultEmbed } from "../utils/embeds.js";
 
@@ -43,7 +43,8 @@ export default {
 
 		const titleEmbed = getDefaultEmbed().setTitle("Weekly support statistics for the last month");
 
-		channel.send({embeds: [titleEmbed]});
+		let embeds: EmbedBuilder[] = [];
+		embeds.push(titleEmbed);
 
 		const redirectsEmbed = getDefaultEmbed().setTitle("Support-ai redirects")
 		// Support-ai redirects
@@ -67,7 +68,7 @@ export default {
 
 			redirectsEmbed.setDescription(`I sent <#${process.env.SUPPORT_AI_CHANNEL!}> redirects in ${count}/${threads.size} support threads`);
 
-			channel.send({embeds: [redirectsEmbed]});
+			embeds.push(redirectsEmbed)
 		}
 
 		// Tags
@@ -132,7 +133,7 @@ export default {
 
 					embed.setDescription(description);
 					description = "";
-					channel.send({embeds: [embed]});
+					embeds.push(embed)
 					embedCount += 1;
 				}
 
@@ -147,7 +148,8 @@ export default {
 				}
 
 				embed.setDescription(description);
-				channel.send({embeds: [embed]});
+				embeds.push(embed)
 		}
+		channel.send({embeds})
 	}
 }
