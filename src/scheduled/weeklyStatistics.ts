@@ -138,7 +138,7 @@ export default {
 			embeds.push(embed)
 		}
 		for (let i = 0; i < embeds.length; i++) {
-			chennel.send({ embeds: [embeds[i]] })
+			channel.send({ embeds: [embeds[i]] })
 		}
 	}
 }
