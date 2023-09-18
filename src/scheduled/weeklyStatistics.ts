@@ -2,18 +2,14 @@ import { EmbedBuilder, ForumChannel, Guild, GuildForumTag, TextChannel } from "d
 import { Client } from "../types"
 import { getDefaultEmbed } from "../utils/embeds.js";
 
-const getTagName = async (guild: Guild, fullTagList: GuildForumTag[], id: string) =>
-{
+const getTagName = async (guild: Guild, fullTagList: GuildForumTag[], id: string) => {
 	const forumTag = fullTagList.find(forumTag => forumTag.id == id);
 
 	let emoji = "";
 
-	if(forumTag)
-	{
-		if(forumTag.emoji)
-		{
-			if(forumTag.emoji.id)
-			{
+	if (forumTag) {
+		if (forumTag.emoji) {
+			if (forumTag.emoji.id) {
 				const guildEmoji = await guild.emojis.fetch(forumTag.emoji.id)
 				emoji = `<:${guildEmoji.name}:${guildEmoji.id}> `;
 			}
@@ -51,17 +47,15 @@ export default {
 		{
 			let count = 0;
 
-			for(let i = 0; i < threads.size; i++)
-			{
+			for (let i = 0; i < threads.size; i++) {
 				const thread = threads.at(i)!;
-				if(thread.members.me)
-				{
+				if (thread.members.me) {
 
 					const msgs = await thread.messages.fetch();
 					msgs.forEach(message => {
-						if(message.author.id == client.user!.id)
+						if (message.author.id == client.user!.id)
 							count++;
-							return;
+						return;
 					})
 				}
 			}
@@ -77,14 +71,12 @@ export default {
 
 			threads.forEach(thread => {
 				thread.appliedTags.forEach(tag => {
-					if(!unsortedTags[tag])
-					{
+					if (!unsortedTags[tag]) {
 						unsortedTags[tag] = {};
 					}
 
 					thread.appliedTags.forEach(subTag => {
-						if(!unsortedTags[tag][subTag])
-						{
+						if (!unsortedTags[tag][subTag]) {
 							unsortedTags[tag][subTag] = 0;
 						}
 
@@ -100,20 +92,18 @@ export default {
 				return unsortedTags[a[0]][a[0]] - unsortedTags[b[0]][b[0]];
 			}).reverse());
 
-			for(const tagId in tags)
-			{
+			for (const tagId in tags) {
 				const tagName = await getTagName(guild, forum.availableTags, tagId);
 				let localDescription = `**${tagName}** (${tags[tagId][tagId]})\n`;
 
 				/** Sub tags sorted descending by count, excluding tags that show up just once. */
 				const subTags = Object.entries(tags[tagId])
-					.sort(([, countA],[, countB]) => countB - countA)
+					.sort(([, countA], [, countB]) => countB - countA)
 					.filter(([subTagId, count]) => subTagId !== tagId && count > 1);
 
 				if (subTags.length) {
 					const subDescriptions = []
-					for(const [id, count] of subTags)
-					{
+					for (const [id, count] of subTags) {
 						const subTagName = await getTagName(guild, forum.availableTags, id);
 						subDescriptions.push(`${subTagName} (${count})`);
 					}
@@ -122,12 +112,10 @@ export default {
 
 				localDescription += "\n";
 
-				if(description.length + localDescription.length > 4096)
-				{
+				if (description.length + localDescription.length > 4096) {
 					let embed = getDefaultEmbed();
 
-					if(embedCount == 0)
-					{
+					if (embedCount == 0) {
 						embed.setTitle("Tags");
 					}
 
@@ -140,16 +128,17 @@ export default {
 				description += localDescription;
 			}
 
-				let embed = getDefaultEmbed();
+			let embed = getDefaultEmbed();
 
-				if(embedCount == 0)
-				{
-					embed.setTitle("Tags");
-				}
+			if (embedCount == 0) {
+				embed.setTitle("Tags");
+			}
 
-				embed.setDescription(description);
-				embeds.push(embed)
+			embed.setDescription(description);
+			embeds.push(embed)
 		}
-		channel.send({embeds})
+		for (let i = 0; i < embeds.length; i++) {
+			chennel.send({ embeds: [embeds[i]] })
+		}
 	}
 }
