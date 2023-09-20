@@ -32,8 +32,9 @@ export default {
           { name: 'Core', value: 'astro' },
           { name: 'Docs', value: 'docs' },
           { name: 'Language Tools', value: 'language-tools' },
-          { name: 'Prettier', value: 'prettier-plugin-astro' },
-          { name: 'Compiler', value: 'compiler' }
+          { name: 'Starlight', value: 'starlight' },
+          { name: 'Compiler', value: 'compiler' },
+          { name: 'Prettier', value: 'prettier-plugin-astro' }
         )
     ),
   async execute(interaction: ChatInputCommandInteraction) {
