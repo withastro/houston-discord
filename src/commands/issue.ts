@@ -37,7 +37,7 @@ export default {
         )
     ),
   async execute(interaction: ChatInputCommandInteraction) {
-    const repo = (interaction.options.get('issue')?.value as string) ?? 'astro';
+    const repo = interaction.options.getString('issue') ?? 'astro';
     const message = random(messages);
     const repoURL = new URL(`https://github.com/withastro/${repo}/`);
     const issueURL = new URL('./issues/new/choose', repoURL);
