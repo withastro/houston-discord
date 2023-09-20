@@ -46,7 +46,7 @@ export default {
 
     interaction.reply({
       content: `${message}\n\nPlease open an issue on the [\`withastro/${repo}\`](${repoURL}) repo.`,
-      components: [{ type: ComponentType.Button, components: [button] }],
+      // components: [{ type: ComponentType.Button, components: [button] }],
       ephemeral: false,
     });
   },
