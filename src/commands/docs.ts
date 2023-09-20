@@ -4,8 +4,8 @@ import { categories, SearchHit } from "../types";
 import { getDefaultEmbed } from "../utils/embeds.js";
 import { decode } from "html-entities";
 
-const client = algoliasearch("7AFBU8EPJU", "4440670147c44d744fd8da35ff652518");
-const index = client.initIndex("astro");
+const client = algoliasearch(process.env.ALGOLIA_APP_ID!, process.env.ALGOLIA_API_KEY!);
+const index = client.initIndex(process.env.ALGOLIA_INDEX!);
 
 const generateNameFromHit = (hit: SearchHit): string => {
 	return decode(reduce(`${hit.hierarchy.lvl0}: ${hit.hierarchy.lvl1}${hit.hierarchy.lvl2? ` - ${hit.hierarchy.lvl2}` : ''} ${(hit.hierarchy.lvl2 && hit.anchor)? `#${hit.anchor}` : ''}`, 100, "..."));
