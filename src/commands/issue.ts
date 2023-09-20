@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ActionRowBuilder } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ActionRowBuilder, ButtonStyle } from 'discord.js';
 import { random } from '../utils/helpers.js';
 
 const messages = [
@@ -42,7 +42,7 @@ export default {
     const repoURL = new URL(`https://github.com/withastro/${repo}/`);
     const issueURL = new URL('./issues/new/choose', repoURL);
     const emoji = { id: '948999573907570768', name: 'github', animated: false };
-    const button = new ButtonBuilder().setLabel('Open GitHub issue').setEmoji(emoji).setURL(issueURL.toString());
+    const button = new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Open GitHub issue').setEmoji(emoji).setURL(issueURL.toString());
 
     const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
 
