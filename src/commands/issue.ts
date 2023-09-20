@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ActionRowBuilder, ButtonStyle } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ActionRowBuilder, ButtonStyle, MessageFlagsBitField } from 'discord.js';
 import { random } from '../utils/helpers.js';
 
 const messages = [
@@ -37,7 +37,7 @@ export default {
         )
     ),
   async execute(interaction: ChatInputCommandInteraction) {
-    const repo = interaction.options.getString('issue') ?? 'astro';
+    const repo = interaction.options.getString('repo') ?? 'astro';
     const message = random(messages);
     const repoURL = new URL(`https://github.com/withastro/${repo}/`);
     const issueURL = new URL('./issues/new/choose', repoURL);
@@ -48,6 +48,7 @@ export default {
 
     interaction.reply({
       content: `${message}\n\nPlease open an issue on the [\`withastro/${repo}\`](${repoURL}) repo.`,
+      flags: 'SuppressEmbeds',
       components: [
         buttonRow
       ],
