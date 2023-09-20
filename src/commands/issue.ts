@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ComponentType } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ActionRowBuilder } from 'discord.js';
 import { random } from '../utils/helpers.js';
 
 const messages = [
@@ -44,9 +44,13 @@ export default {
     const emoji = { id: '948999573907570768', name: 'github', animated: false };
     const button = new ButtonBuilder().setLabel('Open GitHub issue').setEmoji(emoji).setURL(issueURL.toString());
 
+    const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
+
     interaction.reply({
       content: `${message}\n\nPlease open an issue on the [\`withastro/${repo}\`](${repoURL}) repo.`,
-      // components: [{ type: ComponentType.Button, components: [button] }],
+      components: [
+        buttonRow
+      ],
       ephemeral: false,
     });
   },
