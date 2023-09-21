@@ -15,7 +15,6 @@
 	"packageManager": "pnpm@8.6.12",
 	"dependencies": {
 		"algoliasearch": "^4.20.0",
-		"date-fns": "^2.30.0",
 		"discord.js": "^14.13.0",
 		"dotenv": "^16.3.1",
 		"html-entities": "^2.4.0",
