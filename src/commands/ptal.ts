@@ -27,11 +27,11 @@ export default {
 				.setRequired(false)),
 	async execute(interaction: ChatInputCommandInteraction) {
 
-		// if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.endsWith("-ptal"))
-		// {
-		// 	interaction.reply({content: "This command can only be used in PTAL channels"})
-		// 	return;
-		// }
+		if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
+		{
+			interaction.reply({content: "This command can only be used in PTAL channels"})
+			return;
+		}
 
 		let urls: string[] = [];
 
