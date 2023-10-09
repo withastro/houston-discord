@@ -29,7 +29,7 @@ export default {
 
 		if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
 		{
-			interaction.reply({content: "This command can only be used in PTAL channels"})
+			interaction.reply({content: "This command can only be used in PTAL channels", ephemeral: true})
 			return;
 		}
 
@@ -41,7 +41,7 @@ export default {
 
 		if(!githubOption && !deploymentOption)
 		{
-			interaction.reply({content: "Please enter either a github or deployment URL"});
+			interaction.reply({content: "Please enter either a github or deployment URL", ephemeral: true});
 			return;
 		}
 		
@@ -78,11 +78,11 @@ export default {
 				{
 					if(exception instanceof TypeError)
 					{
-						interaction.reply({content: `The following URL is invalid: ${url}`});
+						interaction.reply({content: `The following URL is invalid: ${url}`, ephemeral: true});
 						parsedURLs = false;
 						return;
 					}
-					interaction.reply({content: "Something went wrong while parsing your URL's"});
+					interaction.reply({content: "Something went wrong while parsing your URL's", ephemeral: true});
 					parsedURLs = false;
 					return;
 				}
