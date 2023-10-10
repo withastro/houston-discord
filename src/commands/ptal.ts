@@ -1,5 +1,163 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions } from "discord.js";
 import { URL } from "url";
+import { getDefaultEmbed } from "../utils/embeds.js";
+import {Octokit} from "octokit";
+
+function TryParseURL(url: string, interaction: ChatInputCommandInteraction)
+{
+	try
+	{
+		return new URL(url.trim());
+	}
+	catch (exception)
+	{
+		if(exception instanceof TypeError)
+		{
+			interaction.reply({content: `The following URL is invalid: ${url}`});
+			return null;
+		}
+		interaction.reply({content: "Something went wrong while parsing your URL's"});
+		return null;
+	}
+}
+
+function GetEmojiFromURL(url: URL, interaction: ChatInputCommandInteraction)
+{
+	let apexDomain = url.hostname.split(".").at(-2);
+	let emoji = interaction.guild?.emojis.cache.find(emoji => emoji.name == apexDomain);
+
+	if(emoji)
+	{
+		return `<:${emoji.name}:${emoji.id}>`;
+	}
+	else
+	{
+		return "❓";
+	}
+}
+
+const octokit = new Octokit();
+
+const generateReplyFromInteraction = async (title: string, github: string, deployment: string | null, other: string | null, interaction: ChatInputCommandInteraction): Promise<InteractionReplyOptions | null> => 
+{
+
+	if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
+	{
+		interaction.reply({content: "This command can only be used in PTAL channels", ephemeral: true})
+		return null;
+	}
+
+	let urls: string[] = [];
+	let components: any[] = [];
+
+	let embed = getDefaultEmbed();
+
+	const githubOption = github;
+	const deploymentOption = deployment;
+	const otherOption = other;
+
+	let content = "";
+
+	let githubURL = TryParseURL(githubOption, interaction);
+	{
+		if(githubURL)
+		{
+			const pathSections = githubURL.pathname.split("/");
+			pathSections.shift();
+			if(githubURL.hostname != "github.com" || pathSections.length != 4 || pathSections[2] != "pull" || !Number.parseInt(pathSections[3]))
+			{
+				interaction.reply({content: `Please link a pull request. Format: \`https://github.com/ORGANISATION/REPOSITORY/pull/NUMBER\``, ephemeral: true});
+				return null;
+			}
+
+			embed.addFields({name: "Repository", value: `[${pathSections[0]}/${pathSections[1]}](https://github.com/${pathSections[0]}/${pathSections[1]})`, inline: true});
+
+			let githubLink = new ButtonBuilder()
+				.setEmoji(GetEmojiFromURL(githubURL, interaction))
+				.setLabel("View on Github")
+				.setStyle(ButtonStyle.Link)
+				.setURL(githubURL.href);
+
+			components.push(githubLink);
+
+			try
+			{
+				let pr = await octokit.rest.pulls.get({owner: pathSections[0], repo: pathSections[1], pull_number: Number.parseInt(pathSections[3])});
+
+				if(pr.data.body)
+				{
+					content += `${pr.data.body}\n\n`;
+				}
+				else
+				{
+					content += "No description was provided for this PR\n\n";
+				}
+			}
+			catch
+			{
+					interaction.reply({content: "Something went wrong when parsing your pull request. Are you sure the URL you submitted is correct?", ephemeral: true});
+					return null;
+			}
+		}
+		else
+			return null;
+	}
+
+	if(deploymentOption)
+	{
+		let deployment = TryParseURL(deploymentOption, interaction);
+		if(deployment)
+		{
+			let deploymentLink = new ButtonBuilder()
+				.setEmoji(GetEmojiFromURL(deployment, interaction))
+				.setLabel("View as Preview")
+				.setStyle(ButtonStyle.Link)
+				.setURL(deployment.href);
+
+			components.push(deploymentLink);
+		}
+		else
+			return null;
+	}
+	if(otherOption)
+	{
+		urls.push(...otherOption.split(","));
+	}
+
+	embed.setTitle(`**ptal** ${title}\n`);
+	embed.setAuthor({name: interaction.user.displayName, iconURL: interaction.user.displayAvatarURL()})
+
+	// required since return from foreach doesn't return out of full function
+	let parsedURLs = true;
+
+	urls.forEach(url =>
+		{
+			let urlObject = TryParseURL(url, interaction);
+
+			if(!urlObject)
+			{
+				parsedURLs = false;
+				return;
+			}
+
+			content += `${GetEmojiFromURL(urlObject, interaction)} `
+
+			content += `<${urlObject.href}>\n`;
+		})
+
+	if(!parsedURLs)
+		return null;
+
+	if(content.length > 0)
+	{
+		embed.setDescription(content);
+	}
+
+	let actionRow = new ActionRowBuilder<ButtonBuilder>();
+	actionRow.addComponents(...components);
+
+	return {embeds: [embed], components: [actionRow]};
+}
 
 export default {
 	data: new SlashCommandBuilder()
@@ -10,13 +168,9 @@ export default {
 			.setDescription("The title of the PTAL request")
 			.setRequired(true))
 		.addStringOption(option =>
-				option.setName("description")
-				.setDescription("An extended description of the PTAL request")
-				.setRequired(false))
-		.addStringOption(option =>
 				option.setName("github")
-				.setDescription("A link to a github issue or pull request")
-				.setRequired(false))
+				.setDescription("A link to a github pull request")
+				.setRequired(true))
 		.addStringOption(option =>
 				option.setName("deployment")
 				.setDescription("A link to a deployment related to the PTAL")
@@ -27,91 +181,12 @@ export default {
 				.setRequired(false)),
 	async execute(interaction: ChatInputCommandInteraction) {
 
-		if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
-		{
-			interaction.reply({content: "This command can only be used in PTAL channels", ephemeral: true})
-			return;
-		}
+		const reply = await generateReplyFromInteraction(interaction.options.getString("title", true), interaction.options.getString("github", true), interaction.options.getString("deployment", false), interaction.options.getString("other", false), interaction);
 
-		let urls: string[] = [];
-
-		const githubOption = interaction.options.getString("github", false);
-		const deploymentOption = interaction.options.getString("deployment", false);
-		const otherOption = interaction.options.getString("other", false);
-
-		if(!githubOption && !deploymentOption)
-		{
-			interaction.reply({content: "Please enter either a github or deployment URL", ephemeral: true});
-			return;
-		}
-		
-		if(githubOption)
-		{
-			urls.push(githubOption);
-		}
-		if(deploymentOption)
-		{
-			urls.push(deploymentOption);
-		}
-		if(otherOption)
-		{
-			urls.push(...otherOption.split(","));
-		}
-		
-
-		let content = `**ptal** ${interaction.options.getString("title", true)}\n`;
-
-		// required since return from foreach doesn't return out of full function
-		let parsedURLs = true;
-
-		urls.forEach(url =>
-			{
-				let urlObject: URL;
-
-				url = url.trim();
-
-				try
-				{
-					urlObject = new URL(url);
-				}
-				catch (exception)
-				{
-					if(exception instanceof TypeError)
-					{
-						interaction.reply({content: `The following URL is invalid: ${url}`, ephemeral: true});
-						parsedURLs = false;
-						return;
-					}
-					interaction.reply({content: "Something went wrong while parsing your URL's", ephemeral: true});
-					parsedURLs = false;
-					return;
-				}
-
-				let apexDomain = urlObject.hostname.split(".").at(-2);
-				let emoji = interaction.guild?.emojis.cache.find(emoji => emoji.name == apexDomain);
-
-				if(emoji)
-				{
-					content += `<:${emoji.name}:${emoji.id}> `;
-				}
-				else
-				{
-					content += "❓ ";
-				}
-
-				content += `<${urlObject.href}>\n`;
-			})
-
-		if(!parsedURLs)
+		if(!reply)
 			return;
 
-		const description = interaction.options.getString("description", false);
-		if(description)
-		{
-			content += `\n${description}`;
-		}
-
-		interaction.reply(content);
+		interaction.reply(reply);
 		
 	}
 }
