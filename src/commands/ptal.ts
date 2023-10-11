@@ -38,7 +38,7 @@ function GetEmojiFromURL(url: URL, interaction: ChatInputCommandInteraction)
 
 const octokit = new Octokit();
 
-const generateReplyFromInteraction = async (title: string, github: string, deployment: string | null, other: string | null, interaction: ChatInputCommandInteraction): Promise<InteractionReplyOptions | null> => 
+const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, interaction: ChatInputCommandInteraction): Promise<InteractionReplyOptions | null> => 
 {
 
 	if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
@@ -84,14 +84,7 @@ const generateReplyFromInteraction = async (title: string, github: string, deplo
 			{
 				let pr = await octokit.rest.pulls.get({owner: pathSections[0], repo: pathSections[1], pull_number: Number.parseInt(pathSections[3])});
 
-				if(pr.data.body)
-				{
-					content += `${pr.data.body}\n\n`;
-				}
-				else
-				{
-					content += "No description was provided for this PR\n\n";
-				}
+				embed.setTitle(pr.data.title);
 			}
 			catch
 			{
@@ -124,7 +117,6 @@ const generateReplyFromInteraction = async (title: string, github: string, deplo
 		urls.push(...otherOption.split(","));
 	}
 
-	embed.setTitle(`**ptal** ${title}\n`);
 	embed.setAuthor({name: interaction.user.displayName, iconURL: interaction.user.displayAvatarURL()})
 
 	// required since return from foreach doesn't return out of full function
@@ -156,7 +148,7 @@ const generateReplyFromInteraction = async (title: string, github: string, deplo
 	let actionRow = new ActionRowBuilder<ButtonBuilder>();
 	actionRow.addComponents(...components);
 
-	return {embeds: [embed], components: [actionRow]};
+	return {content: `**PTAL** ${description}`, embeds: [embed], components: [actionRow]};
 }
 
 export default {
@@ -164,8 +156,8 @@ export default {
 		.setName("ptal")
 		.setDescription("Trigger a message on questions that should be reworded")
 		.addStringOption(option =>
-			option.setName("title")
-			.setDescription("The title of the PTAL request")
+			option.setName("description")
+			.setDescription("A short description of the PTAL request")
 			.setRequired(true))
 		.addStringOption(option =>
 				option.setName("github")
@@ -181,7 +173,7 @@ export default {
 				.setRequired(false)),
 	async execute(interaction: ChatInputCommandInteraction) {
 
-		const reply = await generateReplyFromInteraction(interaction.options.getString("title", true), interaction.options.getString("github", true), interaction.options.getString("deployment", false), interaction.options.getString("other", false), interaction);
+		const reply = await generateReplyFromInteraction(interaction.options.getString("description", true), interaction.options.getString("github", true), interaction.options.getString("deployment", false), interaction.options.getString("other", false), interaction);
 
 		if(!reply)
 			return;
