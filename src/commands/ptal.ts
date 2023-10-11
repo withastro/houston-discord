@@ -83,7 +83,7 @@ const generateReplyFromInteraction = async (description: string, github: string,
 			try
 			{
 				let pr = await octokit.rest.pulls.get({owner: pathSections[0], repo: pathSections[1], pull_number: Number.parseInt(pathSections[3])});
-				console.log(pr)
+
 				embed.setTitle(pr.data.title);
 			}
 			catch
