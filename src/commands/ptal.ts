@@ -71,6 +71,7 @@ const generateReplyFromInteraction = async (description: string, github: string,
 			}
 
 			embed.addFields({name: "Repository", value: `[${pathSections[0]}/${pathSections[1]}](https://github.com/${pathSections[0]}/${pathSections[1]})`, inline: true});
+			embed.setURL(githubURL.href);
 
 			let githubLink = new ButtonBuilder()
 				.setEmoji(GetEmojiFromURL(githubURL, interaction))
