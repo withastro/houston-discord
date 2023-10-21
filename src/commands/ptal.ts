@@ -1,9 +1,9 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions, ButtonInteraction, ButtonComponent, Interaction } from "discord.js";
 import { URL } from "url";
 import { getDefaultEmbed } from "../utils/embeds.js";
 import {Octokit} from "octokit";
 
-function TryParseURL(url: string, interaction: ChatInputCommandInteraction)
+function TryParseURL(url: string, interaction: ChatInputCommandInteraction | ButtonInteraction)
 {
 	try
 	{
@@ -21,7 +21,7 @@ function TryParseURL(url: string, interaction: ChatInputCommandInteraction)
 	}
 }
 
-function GetEmojiFromURL(url: URL, interaction: ChatInputCommandInteraction)
+function GetEmojiFromURL(url: URL, interaction: ChatInputCommandInteraction | ButtonInteraction)
 {
 	let apexDomain = url.hostname.split(".").at(-2);
 	let emoji = interaction.guild?.emojis.cache.find(emoji => emoji.name == apexDomain);
@@ -38,14 +38,14 @@ function GetEmojiFromURL(url: URL, interaction: ChatInputCommandInteraction)
 
 const octokit = new Octokit();
 
-const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, interaction: ChatInputCommandInteraction): Promise<InteractionReplyOptions | null> => 
+const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
 {
 
-	if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
-	{
-		interaction.reply({content: "This command can only be used in PTAL channels", ephemeral: true})
-		return null;
-	}
+	// if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
+	// {
+	// 	interaction.reply({content: "This command can only be used in PTAL channels", ephemeral: true})
+	// 	return null;
+	// }
 
 	let urls: string[] = [];
 	let components: any[] = [];
@@ -83,8 +83,18 @@ const generateReplyFromInteraction = async (description: string, github: string,
 			try
 			{
 				let pr = await octokit.rest.pulls.get({owner: pathSections[0], repo: pathSections[1], pull_number: Number.parseInt(pathSections[3])});
-
 				embed.setTitle(pr.data.title);
+
+				let files = (await octokit.rest.pulls.listFiles({owner: pathSections[0], repo: pathSections[1], pull_number: Number.parseInt(pathSections[3])})).data;
+				let changeSets = files.filter(file => {
+					if(file.filename.startsWith(".changeset/") && file.status == "added")
+					{
+						return true;
+					}
+					return false;
+				})
+
+				embed.addFields({name: "Changeset", value: (changeSets.length == 1)? "✅" : "❌", inline: true});
 			}
 			catch
 			{
@@ -145,6 +155,14 @@ const generateReplyFromInteraction = async (description: string, github: string,
 		embed.setDescription(content);
 	}
 
+	const refreshButton = new ButtonBuilder()
+		.setCustomId(`ptal-refresh`)
+		.setLabel("Refresh")
+		.setStyle(ButtonStyle.Primary)
+		.setEmoji("🔁");
+
+	components.push(refreshButton);
+
 	let actionRow = new ActionRowBuilder<ButtonBuilder>();
 	actionRow.addComponents(...components);
 
@@ -180,5 +198,42 @@ export default {
 
 		interaction.reply(reply);
 		
+	},
+	async button(interaction: ButtonInteraction)
+	{
+		let parts = interaction.customId.split("-");
+
+		if(parts[1] == "refresh")
+		{
+			let descriptionArray = interaction.message.content.split(" ");
+			descriptionArray.shift();
+			let description = descriptionArray.join(" ");
+
+			const githubButton = interaction.message.components[0].components[0] as ButtonComponent;
+			let otherButton = interaction.message.components[0].components[1] as ButtonComponent;
+
+			let urls: string[] = [];
+
+			let desc = interaction.message.embeds[0].description;
+
+			let lines = desc?.split("\n")!;
+			for(let i = lines?.length - 1; i > 0; i--)
+			{
+				const line = lines[i].trim();
+				let words = line.split(" ");
+				if(words.at(-1)?.startsWith("http"))
+				{
+					urls.push(words.at(-1)!);
+				}
+			}
+
+			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), interaction);
+
+			if(!reply)
+				return;
+
+			interaction.message.edit({content: reply.content, embeds: reply.embeds, components: reply.components});
+			interaction.reply({content: "Successfully updated the request", ephemeral: true})
+		}
 	}
 }
