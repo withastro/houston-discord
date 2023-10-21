@@ -41,11 +41,11 @@ const octokit = new Octokit();
 const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
 {
 
-	if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
-	{
-		interaction.reply({content: "This command can only be used in PTAL channels", ephemeral: true})
-		return null;
-	}
+	// if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
+	// {
+	// 	interaction.reply({content: "This command can only be used in PTAL channels", ephemeral: true})
+	// 	return null;
+	// }
 
 	let urls: string[] = [];
 	let components: any[] = [];
@@ -218,13 +218,14 @@ export default {
 			let desc = interaction.message.embeds[0].description;
 
 			let lines = desc?.split("\n")!;
-			for(let i = lines?.length - 1; i > 0; i--)
+			for(let i = lines?.length - 1; i >= 0; i--)
 			{
 				const line = lines[i].trim();
+				console.log(line)
 				let words = line.split(" ");
-				if(words.at(-1)?.startsWith("http"))
+				if(words.at(-1)?.startsWith("<http"))
 				{
-					urls.push(words.at(-1)!);
+					urls.unshift(words.at(-1)!.substring(1, words.at(-1)!.length - 2));
 				}
 				else
 				{
