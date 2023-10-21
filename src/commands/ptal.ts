@@ -1,7 +1,7 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions, ButtonInteraction, ButtonComponent } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions, ButtonInteraction, ButtonComponent, ColorResolvable } from "discord.js";
 import { URL } from "url";
 import { getDefaultEmbed } from "../utils/embeds.js";
-import {Octokit} from "@octokit/rest";
+import { Octokit } from "@octokit/rest";
 
 function TryParseURL(url: string, interaction: ChatInputCommandInteraction | ButtonInteraction)
 {
@@ -37,6 +37,28 @@ function GetEmojiFromURL(url: URL, interaction: ChatInputCommandInteraction | Bu
 }
 
 const octokit = new Octokit();
+
+type PullRequestState = 'PENDING' | 'CHANGES_REQUESTED' | 'APPROVED' | 'MERGED' | 'CLOSED';
+function GetColorFromPullRequestState(state: PullRequestState): ColorResolvable
+{
+	switch (state) {
+		case "PENDING": return 'Blue'
+		case "CHANGES_REQUESTED": return 'Red'
+		case "APPROVED": return 'Green'
+		case "MERGED": return 'Purple'
+		case "CLOSED": return 'Grey'
+	}
+}
+function GetHumanStatusFromPullRequestState(state: PullRequestState): string
+{
+	switch (state) {
+		case "PENDING": return '⏳ Waiting for Review'
+		case "CHANGES_REQUESTED": return '⭕ Changes Requested'
+		case "APPROVED": return '✅ Approved'
+		case "MERGED": return '🟣 Merged'
+		case "CLOSED": return '🗑️ Closed'
+	}
+}
 
 const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
 {
@@ -80,13 +102,60 @@ const generateReplyFromInteraction = async (description: string, github: string,
 				.setURL(githubURL.href);
 
 			components.push(githubLink);
+			
+			const [owner, repo, id] = pathSections;
+			const pull_number = Number.parseInt(id);
+			const pr_info = {
+				owner,
+				repo,
+				pull_number
+			}
 
 			try
 			{
 				let pr = await octokit.rest.pulls.get({owner: pathSections[0], repo: pathSections[1], pull_number: Number.parseInt(pathSections[3])});
-				embed.setTitle(`#${pathSections[3]} ${pr.data.title}`);
+				embed.setTitle(`#${pull_number} ${pr.data.title}`);
 
-				let files = (await octokit.rest.pulls.listFiles({owner: pathSections[0], repo: pathSections[1], pull_number: Number.parseInt(pathSections[3])})).data;
+				let pr_state: PullRequestState = 'PENDING';
+				let reviews: string[] = [];
+				if (pr.data.state === 'closed') {
+					if (pr.data.merged)
+					{
+						pr_state = 'MERGED';
+					}
+					else
+					{
+						pr_state = 'CLOSED';
+					}
+				}
+				else
+				{
+					if (pr.data.review_comments > 0)
+					{
+						let { data: reviews } = await octokit.rest.pulls.listReviews(pr_info);
+						for (let { state: reviewState } of reviews) {
+							switch (reviewState) {
+								case 'APPROVED': {
+									reviews.push('✅')
+									if (pr_state !== 'CHANGES_REQUESTED') {
+										pr_state = 'APPROVED';
+									}
+									break;
+								}
+								case 'CHANGED_REQUESTED': {
+									reviews.push('💬')
+									pr_state = 'CHANGES_REQUESTED';
+									break;
+								}
+							}
+						}
+					}
+				}
+				embed.setColor(GetColorFromPullRequestState(pr_state));
+				embed.addFields({name: "Status", value: GetHumanStatusFromPullRequestState(pr_state), inline: true});
+				embed.addFields({name: "Reviews", value: reviews.join('') || '⏳', inline: true});
+
+				let { data: files } = await octokit.rest.pulls.listFiles(pr_info);
 				let changeSets = files.filter(file => {
 					if(file.filename.startsWith(".changeset/") && file.status == "added")
 					{
@@ -94,8 +163,7 @@ const generateReplyFromInteraction = async (description: string, github: string,
 					}
 					return false;
 				})
-
-				embed.addFields({name: "Changeset", value: (changeSets.length == 1)? "✅" : "❌", inline: true});
+				embed.addFields({name: "Changeset", value: (changeSets.length !== 0)? "✅" : "❌", inline: true});
 			}
 			catch
 			{
