@@ -231,6 +231,10 @@ export default {
 				{
 					break;
 				}
+				else
+				{
+					break;
+				}
 			}
 
 			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), interaction);
