@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions, ButtonInteraction, ButtonComponent } from "discord.js";
 import { URL } from "url";
 import { getDefaultEmbed } from "../utils/embeds.js";
-import {Octokit} from "octokit";
+import {Octokit} from "@octokit/rest";
 
 function TryParseURL(url: string, interaction: ChatInputCommandInteraction | ButtonInteraction)
 {
