@@ -218,13 +218,14 @@ export default {
 			let desc = interaction.message.embeds[0].description;
 
 			let lines = desc?.split("\n")!;
-			for(let i = lines?.length - 1; i > 0; i--)
+			for(let i = lines?.length - 1; i >= 0; i--)
 			{
 				const line = lines[i].trim();
+				console.log(line)
 				let words = line.split(" ");
-				if(words.at(-1)?.startsWith("http"))
+				if(words.at(-1)?.startsWith("<http"))
 				{
-					urls.push(words.at(-1)!);
+					urls.unshift(words.at(-1)!.substring(1, words.at(-1)!.length - 2));
 				}
 				else
 				{
