@@ -1,4 +1,4 @@
-import { BaseInteraction, Events, InteractionType } from 'discord.js';
+import { BaseInteraction, Events } from 'discord.js';
 import { Client } from '../types';
 
 export default {
