@@ -41,11 +41,11 @@ const octokit = new Octokit();
 const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
 {
 
-	// if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
-	// {
-	// 	interaction.reply({content: "This command can only be used in PTAL channels", ephemeral: true})
-	// 	return null;
-	// }
+	if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
+	{
+		interaction.reply({content: "This command can only be used in PTAL channels", ephemeral: true})
+		return null;
+	}
 
 	let urls: string[] = [];
 	let components: any[] = [];
