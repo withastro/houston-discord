@@ -221,15 +221,10 @@ export default {
 			for(let i = lines?.length - 1; i >= 0; i--)
 			{
 				const line = lines[i].trim();
-				console.log(line)
 				let words = line.split(" ");
 				if(words.at(-1)?.startsWith("<http"))
 				{
 					urls.unshift(words.at(-1)!.substring(1, words.at(-1)!.length - 2));
-				}
-				else
-				{
-					break;
 				}
 				else
 				{
