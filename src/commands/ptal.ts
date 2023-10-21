@@ -84,7 +84,7 @@ const generateReplyFromInteraction = async (description: string, github: string,
 			try
 			{
 				let pr = await octokit.rest.pulls.get({owner: pathSections[0], repo: pathSections[1], pull_number: Number.parseInt(pathSections[3])});
-				embed.setTitle(pr.data.title);
+				embed.setTitle(`#${pathSections[3]} ${pr.data.title}`);
 
 				let files = (await octokit.rest.pulls.listFiles({owner: pathSections[0], repo: pathSections[1], pull_number: Number.parseInt(pathSections[3])})).data;
 				let changeSets = files.filter(file => {
@@ -221,7 +221,6 @@ export default {
 			for(let i = lines?.length - 1; i >= 0; i--)
 			{
 				const line = lines[i].trim();
-				console.log(line)
 				let words = line.split(" ");
 				if(words.at(-1)?.startsWith("<http"))
 				{
