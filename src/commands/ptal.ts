@@ -226,6 +226,10 @@ export default {
 				{
 					urls.push(words.at(-1)!);
 				}
+				else
+				{
+					break;
+				}
 			}
 
 			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), interaction);
