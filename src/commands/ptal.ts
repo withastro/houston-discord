@@ -1,7 +1,9 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions, ButtonInteraction, ButtonComponent, ColorResolvable } from "discord.js";
-import { URL } from "url";
-import { getDefaultEmbed } from "../utils/embeds.js";
+import { URL } from "node:url";
+import { setTimeout as sleep } from "node:timers/promises";
+import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions, ButtonInteraction, ButtonComponent, ColorResolvable, InteractionType } from "discord.js";
 import { Octokit } from "@octokit/rest";
+
+import { getDefaultEmbed } from "../utils/embeds.js";
 
 function TryParseURL(url: string, interaction: ChatInputCommandInteraction | ButtonInteraction)
 {
@@ -36,42 +38,58 @@ function GetEmojiFromURL(url: URL, interaction: ChatInputCommandInteraction | Bu
 	}
 }
 
-const octokit = new Octokit();
+const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
-type PullRequestState = 'PENDING' | 'CHANGES_REQUESTED' | 'APPROVED' | 'MERGED' | 'CLOSED';
+type PullRequestState = 'PENDING' | 'REVIEWED' | 'CHANGES_REQUESTED' | 'APPROVED' | 'MERGED' | 'CLOSED';
 function GetColorFromPullRequestState(state: PullRequestState): ColorResolvable
 {
 	switch (state) {
 		case "PENDING": return 'Blue'
+		case "REVIEWED": return 'Gold'
 		case "CHANGES_REQUESTED": return 'Red'
 		case "APPROVED": return 'Green'
-		case "MERGED": return 'Purple'
+		case "MERGED": return 'Grey'
 		case "CLOSED": return 'Grey'
 	}
 }
 function GetHumanStatusFromPullRequestState(state: PullRequestState): string
 {
 	switch (state) {
-		case "PENDING": return '⏳ Waiting for Review'
-		case "CHANGES_REQUESTED": return '⭕ Changes Requested'
+		case "PENDING": return '⏳ Pending'
+		case "REVIEWED": return '💬 Reviewed'
+		case "CHANGES_REQUESTED": return '⭕ Blocked'
 		case "APPROVED": return '✅ Approved'
 		case "MERGED": return '🟣 Merged'
 		case "CLOSED": return '🗑️ Closed'
 	}
 }
 
-const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
+function GetReviewStateFromReview(state: string): PullRequestState
 {
+	switch (state) {
+		case "COMMENTED": return 'REVIEWED'
+		case "CHANGES_REQUESTED": return 'CHANGES_REQUESTED'
+		case "APPROVED": return 'APPROVED'
+		default: {
+			throw new Error(`Unhandled Review State "${state}"`);
+		}
+	}
+}
 
-	if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
-	{
-		interaction.reply({content: "This command can only be used in PTAL channels", ephemeral: true})
-		return null;
+const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
+{	
+	// Allow /ptal in test server
+	if (interaction.guild?.name !== 'bot test') {
+		if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
+		{
+			interaction.reply({content: "This command can only be used in PTAL channels", ephemeral: true})
+			return null;
+		}
 	}
 
 	let urls: string[] = [];
 	let components: any[] = [];
-
+	const isUpdate = interaction.type === InteractionType.MessageComponent;
 	let embed = getDefaultEmbed();
 
 	const githubOption = github;
@@ -79,6 +97,7 @@ const generateReplyFromInteraction = async (description: string, github: string,
 	const otherOption = other;
 
 	let content = "";
+	let pr_state: PullRequestState = 'PENDING';
 
 	let githubURL = TryParseURL(githubOption, interaction);
 	{
@@ -92,8 +111,17 @@ const generateReplyFromInteraction = async (description: string, github: string,
 				return null;
 			}
 
-			embed.addFields({name: "Repository", value: `[${pathSections[0]}/${pathSections[1]}](https://github.com/${pathSections[0]}/${pathSections[1]})`, inline: true});
+			const [owner, repo, _, id] = pathSections;
+			const pull_number = Number.parseInt(id);
+			const pr_info = {
+				owner,
+				repo,
+				pull_number
+			}
+
+			embed.addFields({name: "Repository", value: `[${owner}/${repo}](https://github.com/${owner}/${repo})`, inline: true});
 			embed.setURL(githubURL.href);
+			embed.addFields({ name: "Pull Number", value: `[${pull_number}](https://github.com/${owner}/${repo}/pull/${id})`, inline: true });
 
 			let githubLink = new ButtonBuilder()
 				.setEmoji(GetEmojiFromURL(githubURL, interaction))
@@ -102,22 +130,12 @@ const generateReplyFromInteraction = async (description: string, github: string,
 				.setURL(githubURL.href);
 
 			components.push(githubLink);
-			
-			const [owner, repo, id] = pathSections;
-			const pull_number = Number.parseInt(id);
-			const pr_info = {
-				owner,
-				repo,
-				pull_number
-			}
-
 			try
 			{
-				let pr = await octokit.rest.pulls.get({owner: pathSections[0], repo: pathSections[1], pull_number: Number.parseInt(pathSections[3])});
-				embed.setTitle(`#${pull_number} ${pr.data.title}`);
+				let pr = await octokit.rest.pulls.get({ owner, repo, pull_number });
+				embed.setAuthor({ name: pr.data.user.login, iconURL: `https://github.com/${pr.data.user.login}.png` })
 
-				let pr_state: PullRequestState = 'PENDING';
-				let reviews: string[] = [];
+				let reviewTracker: string[] = [];
 				if (pr.data.state === 'closed') {
 					if (pr.data.merged)
 					{
@@ -128,46 +146,81 @@ const generateReplyFromInteraction = async (description: string, github: string,
 						pr_state = 'CLOSED';
 					}
 				}
-				else
+				if (pr.data.state === 'open') {
+					embed.setTitle(pr.data.title);
+				} else {
+					embed.setTitle(`[${pr_state}] ${pr.data.title}`)
+				}
+
+				if (pr.data.review_comments > 0)
 				{
-					if (pr.data.review_comments > 0)
-					{
-						let { data: reviews } = await octokit.rest.pulls.listReviews(pr_info);
-						for (let { state: reviewState } of reviews) {
-							switch (reviewState) {
-								case 'APPROVED': {
-									reviews.push('✅')
-									if (pr_state !== 'CHANGES_REQUESTED') {
-										pr_state = 'APPROVED';
-									}
-									break;
+					let { data: reviews } = await octokit.rest.pulls.listReviews({ ...pr_info, per_page: 100 });
+					const reviewsByUser = new Map<string, PullRequestState>();
+					const reviewURLs = new Map<string, string>();
+					for (let { state: rawState, user, html_url } of reviews) {
+						const id = user?.login;
+						if (!id) continue;
+						const current = reviewsByUser.get(id);
+						const state = GetReviewStateFromReview(rawState)
+						if (state === 'REVIEWED' && current) {
+							// Plain reviews after an approval/block should not factor into the overall status
+							continue;
+						}
+						reviewsByUser.set(id, state)
+						reviewURLs.set(id, html_url)
+					}
+					for (const [user, state] of reviewsByUser) {
+						switch (state) {
+							case 'APPROVED': {
+								const link = reviewURLs.get(user);
+								if (pr.data.state === 'open') {
+									reviewTracker.push(`[✅ @${user}](${link})`)
+								} else {
+									reviewTracker.push(`✅`);
 								}
-								case 'CHANGED_REQUESTED': {
-									reviews.push('💬')
-									pr_state = 'CHANGES_REQUESTED';
-									break;
+								if (pr.data.state === 'open' && pr_state !== 'CHANGES_REQUESTED') {
+									pr_state = state;
+								}
+								break;
+							}
+							case 'CHANGES_REQUESTED': {
+								const link = reviewURLs.get(user);
+								if (pr.data.state === 'open') {
+									reviewTracker.push(`[⭕ @${user}](${link})`)
+								} else {
+									reviewTracker.push(`⭕`);
+								}
+								// GitHub Actions shouldn't factor into overall status
+								if (pr.data.state === 'open' && user !== 'github-actions[bot]') {
+									pr_state = state;
+								}
+								break;
+							}
+							case 'REVIEWED': {
+								const link = reviewURLs.get(user);
+								if (pr.data.state === 'open') {
+									reviewTracker.push(`[💬 @${user}](${link})`)
+								} else {
+									reviewTracker.push(`💬`);
+								}
+								
+								if (pr.data.state === 'open' && pr_state === 'PENDING') {
+									pr_state = state;
 								}
 							}
 						}
 					}
 				}
 				embed.setColor(GetColorFromPullRequestState(pr_state));
-				embed.addFields({name: "Status", value: GetHumanStatusFromPullRequestState(pr_state), inline: true});
-				embed.addFields({name: "Reviews", value: reviews.join('') || '⏳', inline: true});
-
-				let { data: files } = await octokit.rest.pulls.listFiles(pr_info);
-				let changeSets = files.filter(file => {
-					if(file.filename.startsWith(".changeset/") && file.status == "added")
-					{
-						return true;
-					}
-					return false;
-				})
-				embed.addFields({name: "Changeset", value: (changeSets.length !== 0)? "✅" : "❌", inline: true});
+				embed.addFields({ name: "Status", value: GetHumanStatusFromPullRequestState(pr_state) });
+				if (reviewTracker.length > 0) {
+					embed.addFields({name: "Reviews", value: reviewTracker.join(pr.data.state === 'open' ? '\n' : '') });
+				}
 			}
-			catch
+			catch (error)
 			{
-					interaction.reply({content: "Something went wrong when parsing your pull request. Are you sure the URL you submitted is correct?", ephemeral: true});
+					console.error(error);
+					interaction.reply({ content: "Something went wrong when parsing your pull request. Are you sure the URL you submitted is correct?", ephemeral: true });
 					return null;
 			}
 		}
@@ -195,8 +248,9 @@ const generateReplyFromInteraction = async (description: string, github: string,
 	{
 		urls.push(...otherOption.split(","));
 	}
-
-	embed.setAuthor({name: interaction.user.displayName, iconURL: interaction.user.displayAvatarURL()})
+	const verb = isUpdate ? 'Updated' : 'Requested'
+	embed.setFooter({ text: `${verb} by @${interaction.user.displayName}`, iconURL: interaction.user.displayAvatarURL() })
+	embed.setTimestamp(new Date());
 
 	// required since return from foreach doesn't return out of full function
 	let parsedURLs = true;
@@ -223,14 +277,16 @@ const generateReplyFromInteraction = async (description: string, github: string,
 	{
 		embed.setDescription(content);
 	}
+	
+	if (!['MERGED', 'CLOSED'].includes(pr_state)) {
+		const refreshButton = new ButtonBuilder()
+			.setCustomId(`ptal-refresh`)
+			.setLabel("Refresh")
+			.setStyle(ButtonStyle.Primary)
+			.setEmoji("🔁");
 
-	const refreshButton = new ButtonBuilder()
-		.setCustomId(`ptal-refresh`)
-		.setLabel("Refresh")
-		.setStyle(ButtonStyle.Primary)
-		.setEmoji("🔁");
-
-	components.push(refreshButton);
+		components.push(refreshButton);
+	}
 
 	let actionRow = new ActionRowBuilder<ButtonBuilder>();
 	actionRow.addComponents(...components);
@@ -241,14 +297,14 @@ const generateReplyFromInteraction = async (description: string, github: string,
 export default {
 	data: new SlashCommandBuilder()
 		.setName("ptal")
-		.setDescription("Trigger a message on questions that should be reworded")
+		.setDescription("Open a Please Take a Look (PTAL) request")
 		.addStringOption(option =>
 			option.setName("description")
 			.setDescription("A short description of the PTAL request")
 			.setRequired(true))
 		.addStringOption(option =>
 				option.setName("github")
-				.setDescription("A link to a github pull request")
+				.setDescription("A link to a GitHub pull request")
 				.setRequired(true))
 		.addStringOption(option =>
 				option.setName("deployment")
@@ -302,11 +358,12 @@ export default {
 
 			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), interaction);
 
-			if(!reply)
-				return;
+			if(!reply) return;
 
-			interaction.message.edit({content: reply.content, embeds: reply.embeds, components: reply.components});
-			interaction.reply({content: "Successfully updated the request", ephemeral: true})
+			interaction.message.edit({ content: reply.content, embeds: reply.embeds, components: reply.components });
+			const updateMessage = await interaction.reply({ content: "Thanks! This PTAL has been updated successfully.", ephemeral: true })
+			await sleep(10_000);
+			await updateMessage.delete();
 		}
 	}
 }
