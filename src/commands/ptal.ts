@@ -160,6 +160,10 @@ const generateReplyFromInteraction = async (description: string, github: string,
 					for (let { state: rawState, user, html_url } of reviews) {
 						const id = user?.login;
 						if (!id) continue;
+						// Filter out reviews from the author, they are always just replies.
+						if (id === pr.data.user.login) {
+							continue;
+						}
 						const current = reviewsByUser.get(id);
 						const state = GetReviewStateFromReview(rawState)
 						if (state === 'REVIEWED' && current) {
