@@ -217,8 +217,8 @@ const generateReplyFromInteraction = async (description: string, github: string,
 				embed.addFields({ name: "Status", value: GetHumanStatusFromPullRequestState(pr_state), inline: true });
 
 				const { data: files } = await octokit.rest.pulls.listFiles(pr_info)
-				const hasChangeset = !!files.find(file => file.filename.startsWith(".changeset/") && file.status == "added")
-				embed.addFields({ name: "Changeset", value: hasChangeset ? '✅' : '⭕', inline: true })
+				const changesets = files.filter(file => file.filename.startsWith(".changeset/") && file.status == "added")
+				embed.addFields({ name: "Changeset", value: changesets.length > 0 ? '✅' : '⭕', inline: true })
 
 				if (reviewTracker.length > 0) {
 					embed.addFields({name: "Reviews", value: reviewTracker.join(pr.data.state === 'open' ? '\n' : '') });
