@@ -1,5 +1,4 @@
 import { URL } from "node:url";
-import { setTimeout as sleep } from "node:timers/promises";
 import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions, ButtonInteraction, ButtonComponent, ColorResolvable, InteractionType } from "discord.js";
 import { Octokit } from "@octokit/rest";
 
