@@ -118,10 +118,8 @@ const generateReplyFromInteraction = async (description: string, github: string,
 				repo,
 				pull_number
 			}
-
-			embed.addFields({name: "Repository", value: `[${owner}/${repo}](https://github.com/${owner}/${repo})`, inline: true});
+			embed.addFields({ name: "Repository", value: `[${owner}/${repo}#${pull_number}](https://github.com/${owner}/${repo}/pull/${id})` });
 			embed.setURL(githubURL.href);
-			embed.addFields({ name: "Pull Number", value: `[${pull_number}](https://github.com/${owner}/${repo}/pull/${id})`, inline: true });
 
 			let githubLink = new ButtonBuilder()
 				.setEmoji(GetEmojiFromURL(githubURL, interaction))
@@ -216,7 +214,12 @@ const generateReplyFromInteraction = async (description: string, github: string,
 					}
 				}
 				embed.setColor(GetColorFromPullRequestState(pr_state));
-				embed.addFields({ name: "Status", value: GetHumanStatusFromPullRequestState(pr_state) });
+				embed.addFields({ name: "Status", value: GetHumanStatusFromPullRequestState(pr_state), inline: true });
+
+				const { data: files } = await octokit.rest.pulls.listFiles(pr_info)
+				const hasChangeset = !!files.find(file => file.filename.startsWith(".changeset/") && file.status == "added")
+				embed.addFields({ name: "Changeset", value: hasChangeset ? '✅' : '⭕', inline: true })
+
 				if (reviewTracker.length > 0) {
 					embed.addFields({name: "Reviews", value: reviewTracker.join(pr.data.state === 'open' ? '\n' : '') });
 				}
@@ -360,14 +363,11 @@ export default {
 				}
 			}
 
+			const deferred = await interaction.deferReply({ ephemeral: true });
 			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), interaction);
-
 			if(!reply) return;
-
 			interaction.message.edit({ content: reply.content, embeds: reply.embeds, components: reply.components });
-			const updateMessage = await interaction.reply({ content: "Thanks! This PTAL has been updated successfully.", ephemeral: true })
-			await sleep(10_000);
-			await updateMessage.delete();
+			await deferred.delete();
 		}
 	}
 }
