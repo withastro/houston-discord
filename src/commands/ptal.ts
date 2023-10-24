@@ -54,7 +54,7 @@ function GetColorFromPullRequestState(state: PullRequestState): ColorResolvable
 function GetHumanStatusFromPullRequestState(state: PullRequestState): string
 {
 	switch (state) {
-		case "PENDING": return '⏳ Pending'
+		case "PENDING": return '⏳ Awaiting Review'
 		case "REVIEWED": return '💬 Reviewed'
 		case "CHANGES_REQUESTED": return '⭕ Blocked'
 		case "APPROVED": return '✅ Approved'
@@ -216,7 +216,7 @@ const generateReplyFromInteraction = async (description: string, github: string,
 
 			const { data: files } = await octokit.rest.pulls.listFiles(pr_info)
 			const changesets = files.filter(file => file.filename.startsWith(".changeset/") && file.status == "added")
-			embed.addFields({ name: "Changeset", value: changesets.length > 0 ? '✅' : '⭕', inline: true })
+			embed.addFields({ name: "Changeset", value: changesets.length > 0 ? '✅ Added' : '⬜ None', inline: true })
 
 			if (reviewTracker.length > 0) {
 				embed.addFields({name: "Reviews", value: reviewTracker.join(pr.data.state === 'open' ? '\n' : '') });
