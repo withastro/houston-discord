@@ -99,140 +99,138 @@ const generateReplyFromInteraction = async (description: string, github: string,
 	let pr_state: PullRequestState = 'PENDING';
 
 	let githubURL = TryParseURL(githubOption, interaction);
+	if(githubURL)
 	{
-		if(githubURL)
+		const pathSections = githubURL.pathname.split("/");
+		pathSections.shift();
+		if(githubURL.hostname != "github.com" || pathSections.length != 4 || pathSections[2] != "pull" || !Number.parseInt(pathSections[3]))
 		{
-			const pathSections = githubURL.pathname.split("/");
-			pathSections.shift();
-			if(githubURL.hostname != "github.com" || pathSections.length != 4 || pathSections[2] != "pull" || !Number.parseInt(pathSections[3]))
-			{
-				interaction.reply({content: `Please link a pull request. Format: \`https://github.com/ORGANISATION/REPOSITORY/pull/NUMBER\``, ephemeral: true});
-				return null;
-			}
+			interaction.reply({content: `Please link a pull request. Format: \`https://github.com/ORGANISATION/REPOSITORY/pull/NUMBER\``, ephemeral: true});
+			return null;
+		}
 
-			const [owner, repo, _, id] = pathSections;
-			const pull_number = Number.parseInt(id);
-			const pr_info = {
-				owner,
-				repo,
-				pull_number
-			}
-			embed.addFields({ name: "Repository", value: `[${owner}/${repo}#${pull_number}](https://github.com/${owner}/${repo}/pull/${id})` });
-			embed.setURL(githubURL.href);
+		const [owner, repo, _, id] = pathSections;
+		const pull_number = Number.parseInt(id);
+		const pr_info = {
+			owner,
+			repo,
+			pull_number
+		}
+		embed.addFields({ name: "Repository", value: `[${owner}/${repo}#${pull_number}](https://github.com/${owner}/${repo}/pull/${id})` });
+		embed.setURL(githubURL.href);
 
-			let githubLink = new ButtonBuilder()
-				.setEmoji(GetEmojiFromURL(githubURL, interaction))
-				.setLabel("View on Github")
-				.setStyle(ButtonStyle.Link)
-				.setURL(githubURL.href);
+		let githubLink = new ButtonBuilder()
+			.setEmoji(GetEmojiFromURL(githubURL, interaction))
+			.setLabel("View on Github")
+			.setStyle(ButtonStyle.Link)
+			.setURL(githubURL.href);
 
-			components.push(githubLink);
-			try
-			{
-				let pr = await octokit.rest.pulls.get({ owner, repo, pull_number });
-				embed.setAuthor({ name: pr.data.user.login, iconURL: `https://github.com/${pr.data.user.login}.png` })
+		components.push(githubLink);
+		try
+		{
+			let pr = await octokit.rest.pulls.get({ owner, repo, pull_number });
+			embed.setAuthor({ name: pr.data.user.login, iconURL: `https://github.com/${pr.data.user.login}.png` })
 
-				let reviewTracker: string[] = [];
-				if (pr.data.state === 'closed') {
-					if (pr.data.merged)
-					{
-						pr_state = 'MERGED';
-					}
-					else
-					{
-						pr_state = 'CLOSED';
-					}
-				}
-				if (pr.data.state === 'open') {
-					embed.setTitle(pr.data.title);
-				} else {
-					embed.setTitle(`[${pr_state}] ${pr.data.title}`)
-				}
-
-				if (pr.data.review_comments > 0)
+			let reviewTracker: string[] = [];
+			if (pr.data.state === 'closed') {
+				if (pr.data.merged)
 				{
-					let { data: reviews } = await octokit.rest.pulls.listReviews({ ...pr_info, per_page: 100 });
-					const reviewsByUser = new Map<string, PullRequestState>();
-					const reviewURLs = new Map<string, string>();
-					for (let { state: rawState, user, html_url } of reviews) {
-						const id = user?.login;
-						if (!id) continue;
-						// Filter out reviews from the author, they are always just replies.
-						if (id === pr.data.user.login) {
-							continue;
-						}
-						const current = reviewsByUser.get(id);
-						const state = GetReviewStateFromReview(rawState)
-						if (state === 'REVIEWED' && current) {
-							// Plain reviews after an approval/block should not factor into the overall status
-							continue;
-						}
-						reviewsByUser.set(id, state)
-						reviewURLs.set(id, html_url)
-					}
-					for (const [user, state] of reviewsByUser) {
-						switch (state) {
-							case 'APPROVED': {
-								const link = reviewURLs.get(user);
-								if (pr.data.state === 'open') {
-									reviewTracker.push(`[✅ @${user}](${link})`)
-								} else {
-									reviewTracker.push(`✅`);
-								}
-								if (pr.data.state === 'open' && pr_state !== 'CHANGES_REQUESTED') {
-									pr_state = state;
-								}
-								break;
-							}
-							case 'CHANGES_REQUESTED': {
-								const link = reviewURLs.get(user);
-								if (pr.data.state === 'open') {
-									reviewTracker.push(`[⭕ @${user}](${link})`)
-								} else {
-									reviewTracker.push(`⭕`);
-								}
-								// GitHub Actions shouldn't factor into overall status
-								if (pr.data.state === 'open' && user !== 'github-actions[bot]') {
-									pr_state = state;
-								}
-								break;
-							}
-							case 'REVIEWED': {
-								const link = reviewURLs.get(user);
-								if (pr.data.state === 'open') {
-									reviewTracker.push(`[💬 @${user}](${link})`)
-								} else {
-									reviewTracker.push(`💬`);
-								}
-								
-								if (pr.data.state === 'open' && pr_state === 'PENDING') {
-									pr_state = state;
-								}
-							}
-						}
-					}
+					pr_state = 'MERGED';
 				}
-				embed.setColor(GetColorFromPullRequestState(pr_state));
-				embed.addFields({ name: "Status", value: GetHumanStatusFromPullRequestState(pr_state), inline: true });
-
-				const { data: files } = await octokit.rest.pulls.listFiles(pr_info)
-				const changesets = files.filter(file => file.filename.startsWith(".changeset/") && file.status == "added")
-				embed.addFields({ name: "Changeset", value: changesets.length > 0 ? '✅' : '⭕', inline: true })
-
-				if (reviewTracker.length > 0) {
-					embed.addFields({name: "Reviews", value: reviewTracker.join(pr.data.state === 'open' ? '\n' : '') });
+				else
+				{
+					pr_state = 'CLOSED';
 				}
 			}
-			catch (error)
+			if (pr.data.state === 'open') {
+				embed.setTitle(pr.data.title);
+			} else {
+				embed.setTitle(`[${pr_state}] ${pr.data.title}`)
+			}
+
+			if (pr.data.review_comments > 0)
 			{
-					console.error(error);
-					interaction.reply({ content: "Something went wrong when parsing your pull request. Are you sure the URL you submitted is correct?", ephemeral: true });
-					return null;
+				let { data: reviews } = await octokit.rest.pulls.listReviews({ ...pr_info, per_page: 100 });
+				const reviewsByUser = new Map<string, PullRequestState>();
+				const reviewURLs = new Map<string, string>();
+				for (let { state: rawState, user, html_url } of reviews) {
+					const id = user?.login;
+					if (!id) continue;
+					// Filter out reviews from the author, they are always just replies.
+					if (id === pr.data.user.login) {
+						continue;
+					}
+					const current = reviewsByUser.get(id);
+					const state = GetReviewStateFromReview(rawState)
+					if (state === 'REVIEWED' && current) {
+						// Plain reviews after an approval/block should not factor into the overall status
+						continue;
+					}
+					reviewsByUser.set(id, state)
+					reviewURLs.set(id, html_url)
+				}
+				for (const [user, state] of reviewsByUser) {
+					switch (state) {
+						case 'APPROVED': {
+							const link = reviewURLs.get(user);
+							if (pr.data.state === 'open') {
+								reviewTracker.push(`[✅ @${user}](${link})`)
+							} else {
+								reviewTracker.push(`✅`);
+							}
+							if (pr.data.state === 'open' && pr_state !== 'CHANGES_REQUESTED') {
+								pr_state = state;
+							}
+							break;
+						}
+						case 'CHANGES_REQUESTED': {
+							const link = reviewURLs.get(user);
+							if (pr.data.state === 'open') {
+								reviewTracker.push(`[⭕ @${user}](${link})`)
+							} else {
+								reviewTracker.push(`⭕`);
+							}
+							// GitHub Actions shouldn't factor into overall status
+							if (pr.data.state === 'open' && user !== 'github-actions[bot]') {
+								pr_state = state;
+							}
+							break;
+						}
+						case 'REVIEWED': {
+							const link = reviewURLs.get(user);
+							if (pr.data.state === 'open') {
+								reviewTracker.push(`[💬 @${user}](${link})`)
+							} else {
+								reviewTracker.push(`💬`);
+							}
+							
+							if (pr.data.state === 'open' && pr_state === 'PENDING') {
+								pr_state = state;
+							}
+						}
+					}
+				}
+			}
+			embed.setColor(GetColorFromPullRequestState(pr_state));
+			embed.addFields({ name: "Status", value: GetHumanStatusFromPullRequestState(pr_state), inline: true });
+
+			const { data: files } = await octokit.rest.pulls.listFiles(pr_info)
+			const changesets = files.filter(file => file.filename.startsWith(".changeset/") && file.status == "added")
+			embed.addFields({ name: "Changeset", value: changesets.length > 0 ? '✅' : '⭕', inline: true })
+
+			if (reviewTracker.length > 0) {
+				embed.addFields({name: "Reviews", value: reviewTracker.join(pr.data.state === 'open' ? '\n' : '') });
 			}
 		}
-		else
-			return null;
+		catch (error)
+		{
+				console.error(error);
+				interaction.reply({ content: "Something went wrong when parsing your pull request. Are you sure the URL you submitted is correct?", ephemeral: true });
+				return null;
+		}
 	}
+	else
+		return null;
 
 	if(deploymentOption)
 	{
@@ -364,8 +362,12 @@ export default {
 
 			const deferred = await interaction.deferReply({ ephemeral: true });
 			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), interaction);
-			if(!reply) return;
-			
+			if (!reply) {
+				console.error('/ptal failed to update');
+				return;
+			}
+
+			console.debug('/ptal updated', reply);
 			await interaction.message.edit({ content: reply.content, embeds: reply.embeds, components: reply.components });
 			await deferred.delete();
 		}
