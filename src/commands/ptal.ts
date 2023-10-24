@@ -54,7 +54,7 @@ function GetColorFromPullRequestState(state: PullRequestState): ColorResolvable
 function GetHumanStatusFromPullRequestState(state: PullRequestState): string
 {
 	switch (state) {
-		case "PENDING": return '⏳ Pending'
+		case "PENDING": return '⏳ Awaiting Review'
 		case "REVIEWED": return '💬 Reviewed'
 		case "CHANGES_REQUESTED": return '⭕ Blocked'
 		case "APPROVED": return '✅ Approved'
