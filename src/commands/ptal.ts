@@ -366,10 +366,16 @@ export default {
 			console.log(reply?.embeds![0])
 			if(!reply) return;
 			
-			let message = await interaction.message.edit({ content: reply.content, embeds: reply.embeds, components: reply.components });
-			console.log(message);
-			console.log(message.embeds[0])
-			await deferred.delete();
+			try {
+				let message = await interaction.message.edit({ content: reply.content, embeds: reply.embeds, components: reply.components });
+				console.log(message);
+				console.log(message.embeds[0])
+				await deferred.delete();
+			} catch (exception) {
+				console.error(exception);
+				await interaction.editReply({ content: "Something went wrong while updating your /ptal request!" })
+				return null;
+			}
 		}
 	}
 }
