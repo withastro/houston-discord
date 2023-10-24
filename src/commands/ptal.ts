@@ -359,18 +359,13 @@ export default {
 
 			await interaction.deferUpdate();
 			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), interaction);
-			console.log(reply)
-			console.log(reply?.embeds![0])
-			if(!reply) return;
+			if (!reply) return;
 			
 			try {
-				let message = await interaction.editReply({ content: reply.content, embeds: reply.embeds, components: reply.components });
-				console.log(message);
-				console.log(message.embeds[0])
+				await interaction.editReply({ content: reply.content, embeds: reply.embeds, components: reply.components });
 			} catch (exception) {
 				console.error(exception);
 				await interaction.editReply({ content: "Something went wrong while updating your /ptal request!" })
-				return null;
 			}
 		}
 	}
