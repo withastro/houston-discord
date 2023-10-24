@@ -259,20 +259,17 @@ const generateReplyFromInteraction = async (description: string, github: string,
 	// required since return from foreach doesn't return out of full function
 	let parsedURLs = true;
 
-	urls.forEach(url =>
-		{
-			let urlObject = TryParseURL(url, interaction);
+	for (const url of urls) {
+		const urlObject = TryParseURL(url, interaction);
 
-			if(!urlObject)
-			{
-				parsedURLs = false;
-				return;
-			}
+		if (!urlObject) {
+			parsedURLs = false;
+			break;
+		}
 
-			content += `${GetEmojiFromURL(urlObject, interaction)} `
-
-			content += `<${urlObject.href}>\n`;
-		})
+		content += `${GetEmojiFromURL(urlObject, interaction)} `;
+		content += `<${urlObject.href}>\n`;
+	}
 
 	if(!parsedURLs)
 		return null;
@@ -360,17 +357,16 @@ export default {
 				}
 			}
 
-			const deferred = await interaction.deferReply({ ephemeral: true });
+			await interaction.deferUpdate();
 			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), interaction);
 			console.log(reply)
 			console.log(reply?.embeds![0])
 			if(!reply) return;
 			
 			try {
-				let message = await interaction.message.edit({ content: reply.content, embeds: reply.embeds, components: reply.components });
+				let message = await interaction.editReply({ content: reply.content, embeds: reply.embeds, components: reply.components });
 				console.log(message);
 				console.log(message.embeds[0])
-				await deferred.delete();
 			} catch (exception) {
 				console.error(exception);
 				await interaction.editReply({ content: "Something went wrong while updating your /ptal request!" })
