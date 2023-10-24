@@ -216,7 +216,7 @@ const generateReplyFromInteraction = async (description: string, github: string,
 
 			const { data: files } = await octokit.rest.pulls.listFiles(pr_info)
 			const changesets = files.filter(file => file.filename.startsWith(".changeset/") && file.status == "added")
-			embed.addFields({ name: "Changeset", value: changesets.length > 0 ? '✅' : '⭕', inline: true })
+			embed.addFields({ name: "Changeset", value: changesets.length > 0 ? '✅ Present' : '⚠️ Missing', inline: true })
 
 			if (reviewTracker.length > 0) {
 				embed.addFields({name: "Reviews", value: reviewTracker.join(pr.data.state === 'open' ? '\n' : '') });
