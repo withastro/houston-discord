@@ -366,7 +366,9 @@ export default {
 			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), interaction);
 			if(!reply) return;
 			
-			await interaction.message.edit({ content: reply.content, embeds: reply.embeds, components: reply.components });
+			let message = await interaction.message.edit({ content: reply.content, embeds: reply.embeds, components: reply.components });
+			console.log(message);
+			console.log(message.embeds[0])
 			await deferred.delete();
 		}
 	}
