@@ -365,7 +365,8 @@ export default {
 			const deferred = await interaction.deferReply({ ephemeral: true });
 			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), interaction);
 			if(!reply) return;
-			interaction.message.edit({ content: reply.content, embeds: reply.embeds, components: reply.components });
+			
+			await interaction.message.edit({ content: reply.content, embeds: reply.embeds, components: reply.components });
 			await deferred.delete();
 		}
 	}
