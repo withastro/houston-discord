@@ -66,7 +66,9 @@ function GetHumanStatusFromPullRequestState(state: PullRequestState): string
 function GetReviewStateFromReview(state: string): PullRequestState
 {
 	switch (state) {
-		case "COMMENTED": return 'REVIEWED'
+		case "COMMENTED":
+		case "DISMISSED": 
+			return 'REVIEWED'
 		case "CHANGES_REQUESTED": return 'CHANGES_REQUESTED'
 		case "APPROVED": return 'APPROVED'
 		default: {
