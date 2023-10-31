@@ -351,7 +351,7 @@ export default {
 				let words = line.split(" ");
 				if(words.at(-1)?.startsWith("<http"))
 				{
-					urls.unshift(words.at(-1)!.substring(1, words.at(-1)!.length - 2));
+					urls.unshift(words.at(-1)!.substring(1, words.at(-1)!.length - 1));
 				}
 				else
 				{
