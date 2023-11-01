@@ -1,5 +1,6 @@
 {
   "name": "houston-bot",
+  "private": true,
   "version": "1.0.0",
   "description": "",
   "main": "lib/app.js",
@@ -25,5 +26,6 @@
     "@types/node": "^18.17.18",
     "@types/node-schedule": "^2.1.0",
     "typescript": "^5.1.0"
-  }
+  },
+  "license": "MIT"
 }
