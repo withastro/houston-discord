@@ -6,7 +6,9 @@
   "main": "lib/app.js",
   "type": "module",
   "scripts": {
-    "start": "tsc && node .",
+    "build": "tsc",
+    "start": "node .",
+    "dev": "tsc && node .",
     "preinstall": "npx only-allow pnpm"
   },
   "engines": {
