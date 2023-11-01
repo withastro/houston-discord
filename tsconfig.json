@@ -8,7 +8,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
-    "outDir": "lib"
+    "outDir": "lib",
+	"sourceMap": true
   },
   "include": ["src/**/*"],
 }
