@@ -9,7 +9,7 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
     "outDir": "lib",
-	"sourceMap": true
+    "sourceMap": true
   },
   "include": ["src/**/*"],
 }
