@@ -6,7 +6,7 @@
   "main": "lib/app.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --build --verbose",
     "start": "node .",
     "dev": "tsc && node .",
     "preinstall": "npx only-allow pnpm"

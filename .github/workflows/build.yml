@@ -30,4 +30,4 @@ jobs:
               run: pnpm install
 
             - name: Build
-              run: pnpm run build --build --verbose
+              run: pnpm run build
