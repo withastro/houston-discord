@@ -128,6 +128,12 @@ const generateReplyFromInteraction = async (description: string, github: string,
 			.setURL(githubURL.href);
 
 		components.push(githubLink);
+
+		if(interaction instanceof ChatInputCommandInteraction)
+		{
+			await interaction.deferReply();
+		}
+
 		try
 		{
 			let pr = await octokit.rest.pulls.get({ owner, repo, pull_number });
@@ -324,7 +330,7 @@ export default {
 		if(!reply)
 			return;
 
-		interaction.reply(reply);
+		interaction.editReply({...reply});
 		
 	},
 	async button(interaction: ButtonInteraction)
