@@ -1,5 +1,5 @@
 import { URL } from "node:url";
-import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions, ButtonInteraction, ButtonComponent, ColorResolvable, InteractionType } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions, ButtonInteraction, ButtonComponent, ColorResolvable, InteractionType, APIApplicationCommandOptionChoice } from "discord.js";
 import { Octokit } from "@octokit/rest";
 
 import { getDefaultEmbed } from "../utils/embeds.js";
@@ -77,7 +77,26 @@ function GetReviewStateFromReview(state: string): PullRequestState
 	}
 }
 
-const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
+function GetEmojiFromType(type: string | null): string
+{
+	switch(type)
+	{
+		default:
+		case "normal": return ""
+		case "baby": return "🍼"
+	}
+}
+
+function GetTypeFromEmoji(emoji: string): string
+{
+	switch(emoji)
+	{
+		default: return "normal"
+		case "🍼": return "baby"
+	}
+}
+
+const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, type: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
 {	
 	// Allow /ptal in test server
 	if (interaction.guild?.name !== 'bot test') {
@@ -294,8 +313,11 @@ const generateReplyFromInteraction = async (description: string, github: string,
 	let actionRow = new ActionRowBuilder<ButtonBuilder>();
 	actionRow.addComponents(...components);
 
-	return {content: `**PTAL** ${description}`, embeds: [embed], components: [actionRow]};
+	const emoji = GetEmojiFromType(type);
+	return {content: `${(emoji != "")? `${emoji} ` : ""}**PTAL** ${description}`, embeds: [embed], components: [actionRow]};
 }
+
+const ptalTypes: string[] = ["normal", "baby"];
 
 export default {
 	data: new SlashCommandBuilder()
@@ -316,10 +338,19 @@ export default {
 		.addStringOption(option =>
 				option.setName("other")
 				.setDescription("Other links related to the PTAL, comma seperated")
-				.setRequired(false)),
+				.setRequired(false))
+		.addStringOption(option => 
+			option.setName("type")
+			.setDescription("The type of the PTAL request")
+			.setRequired(false)
+			.setChoices(
+				...ptalTypes.flatMap<APIApplicationCommandOptionChoice<string>>((type) => {
+					return {name: type, value: type}
+				})
+			)),
 	async execute(interaction: ChatInputCommandInteraction) {
 
-		const reply = await generateReplyFromInteraction(interaction.options.getString("description", true), interaction.options.getString("github", true), interaction.options.getString("deployment", false), interaction.options.getString("other", false), interaction);
+		const reply = await generateReplyFromInteraction(interaction.options.getString("description", true), interaction.options.getString("github", true), interaction.options.getString("deployment", false), interaction.options.getString("other", false), interaction.options.getString("type", false), interaction);
 
 		if(!reply)
 			return;
@@ -334,6 +365,14 @@ export default {
 		if(parts[1] == "refresh")
 		{
 			let descriptionArray = interaction.message.content.split(" ");
+
+			let type = "normal";
+			if(descriptionArray[0] != "**PTAL**")
+			{
+				type = GetTypeFromEmoji(descriptionArray[0]);
+				descriptionArray.shift();
+			}
+
 			descriptionArray.shift();
 			let description = descriptionArray.join(" ");
 
@@ -360,7 +399,7 @@ export default {
 			}
 
 			await interaction.deferUpdate();
-			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), interaction);
+			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), type, interaction);
 			if (!reply) return;
 			
 			try {
