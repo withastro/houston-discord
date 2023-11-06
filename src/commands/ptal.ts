@@ -77,26 +77,7 @@ function GetReviewStateFromReview(state: string): PullRequestState
 	}
 }
 
-function GetEmojiFromType(type: string | null): string
-{
-	switch(type)
-	{
-		default:
-		case "normal": return ""
-		case "baby": return "🍼"
-	}
-}
-
-function GetTypeFromEmoji(emoji: string): string
-{
-	switch(emoji)
-	{
-		default: return "normal"
-		case "🍼": return "baby"
-	}
-}
-
-const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, type: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
+const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, emoji: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
 {	
 	// Allow /ptal in test server
 	if (interaction.guild?.name !== 'bot test') {
@@ -313,11 +294,8 @@ const generateReplyFromInteraction = async (description: string, github: string,
 	let actionRow = new ActionRowBuilder<ButtonBuilder>();
 	actionRow.addComponents(...components);
 
-	const emoji = GetEmojiFromType(type);
-	return {content: `${(emoji != "")? `${emoji} ` : ""}**PTAL** ${description}`, embeds: [embed], components: [actionRow]};
+	return {content: `${(emoji != " " && emoji != null)? `${emoji} ` : ""}**PTAL** ${description}`, embeds: [embed], components: [actionRow]};
 }
-
-const ptalTypes: string[] = ["normal", "baby"];
 
 export default {
 	data: new SlashCommandBuilder()
@@ -344,9 +322,9 @@ export default {
 			.setDescription("The type of the PTAL request")
 			.setRequired(false)
 			.setChoices(
-				...ptalTypes.flatMap<APIApplicationCommandOptionChoice<string>>((type) => {
-					return {name: type, value: type}
-				})
+				// space in normal is required to avoid an error for the string being empty
+				{name: "normal", value: " "},
+				{name: "baby", value: "🍼"}
 			)),
 	async execute(interaction: ChatInputCommandInteraction) {
 
@@ -366,10 +344,10 @@ export default {
 		{
 			let descriptionArray = interaction.message.content.split(" ");
 
-			let type = "normal";
+			let emoji = null;
 			if(descriptionArray[0] != "**PTAL**")
 			{
-				type = GetTypeFromEmoji(descriptionArray[0]);
+				emoji = descriptionArray[0];
 				descriptionArray.shift();
 			}
 
@@ -399,7 +377,7 @@ export default {
 			}
 
 			await interaction.deferUpdate();
-			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), type, interaction);
+			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), emoji, interaction);
 			if (!reply) return;
 			
 			try {
