@@ -3,6 +3,7 @@ import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, Button
 import { Octokit } from "@octokit/rest";
 
 import { getDefaultEmbed } from "../utils/embeds.js";
+import { type } from "node:os";
 
 function TryParseURL(url: string, interaction: ChatInputCommandInteraction | ButtonInteraction)
 {
@@ -86,6 +87,11 @@ const generateReplyFromInteraction = async (description: string, github: string,
 			interaction.reply({content: "This command can only be used in PTAL channels", ephemeral: true})
 			return null;
 		}
+	}
+
+	if(emoji)
+	{
+		emoji = emoji.trim();
 	}
 
 	let urls: string[] = [];
