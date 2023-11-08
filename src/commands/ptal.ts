@@ -80,14 +80,6 @@ function GetReviewStateFromReview(state: string): PullRequestState
 
 const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, emoji: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
 {	
-	// Allow /ptal in test server
-	if (interaction.guild?.name !== 'bot test') {
-		if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
-		{
-			interaction.reply({content: "This command can only be used in PTAL channels", ephemeral: true})
-			return null;
-		}
-	}
 
 	if(emoji)
 	{
@@ -134,6 +126,12 @@ const generateReplyFromInteraction = async (description: string, github: string,
 			.setURL(githubURL.href);
 
 		components.push(githubLink);
+
+		if(interaction instanceof ChatInputCommandInteraction)
+		{
+			await interaction.deferReply();
+		}
+
 		try
 		{
 			let pr = await octokit.rest.pulls.get({ owner, repo, pull_number });
@@ -156,65 +154,62 @@ const generateReplyFromInteraction = async (description: string, github: string,
 				embed.setTitle(`[${pr_state}] ${pr.data.title}`)
 			}
 
-			if (pr.data.review_comments > 0)
-			{
-				let { data: reviews } = await octokit.rest.pulls.listReviews({ ...pr_info, per_page: 100 });
-				const reviewsByUser = new Map<string, PullRequestState>();
-				const reviewURLs = new Map<string, string>();
-				for (let { state: rawState, user, html_url } of reviews) {
-					const id = user?.login;
-					if (!id) continue;
-					// Filter out reviews from the author and GitHub Actions, they aren't relevant
-					if (id === pr.data.user.login || id === 'github-actions[bot]') {
-						continue;
-					}
-					const current = reviewsByUser.get(id);
-					const state = GetReviewStateFromReview(rawState)
-					if (state === 'REVIEWED' && current) {
-						// Plain reviews after an approval/block should not factor into the overall status
-						continue;
-					}
-					reviewsByUser.set(id, state)
-					reviewURLs.set(id, html_url)
+			let { data: reviews } = await octokit.rest.pulls.listReviews({ ...pr_info, per_page: 100 });
+			const reviewsByUser = new Map<string, PullRequestState>();
+			const reviewURLs = new Map<string, string>();
+			for (let { state: rawState, user, html_url } of reviews) {
+				const id = user?.login;
+				if (!id) continue;
+				// Filter out reviews from the author and GitHub Actions, they aren't relevant
+				if (id === pr.data.user.login || id === 'github-actions[bot]' || id === "astrobot-houston") {
+					continue;
 				}
-				for (const [user, state] of reviewsByUser) {
-					switch (state) {
-						case 'APPROVED': {
-							const link = reviewURLs.get(user);
-							if (pr.data.state === 'open') {
-								reviewTracker.push(`[✅ @${user}](${link})`)
-							} else {
-								reviewTracker.push(`✅`);
-							}
-							if (pr.data.state === 'open' && pr_state !== 'CHANGES_REQUESTED') {
-								pr_state = state;
-							}
-							break;
+				const current = reviewsByUser.get(id);
+				const state = GetReviewStateFromReview(rawState)
+				if (state === 'REVIEWED' && current) {
+					// Plain reviews after an approval/block should not factor into the overall status
+					continue;
+				}
+				reviewsByUser.set(id, state)
+				reviewURLs.set(id, html_url)
+			}
+			for (const [user, state] of reviewsByUser) {
+				switch (state) {
+					case 'APPROVED': {
+						const link = reviewURLs.get(user);
+						if (pr.data.state === 'open') {
+							reviewTracker.push(`[✅ @${user}](${link})`)
+						} else {
+							reviewTracker.push(`✅`);
 						}
-						case 'CHANGES_REQUESTED': {
-							const link = reviewURLs.get(user);
-							if (pr.data.state === 'open') {
-								reviewTracker.push(`[⭕ @${user}](${link})`)
-							} else {
-								reviewTracker.push(`⭕`);
-							}
-							// GitHub Actions shouldn't factor into overall status
-							if (pr.data.state === 'open' && user !== 'github-actions[bot]') {
-								pr_state = state;
-							}
-							break;
+						if (pr.data.state === 'open' && pr_state !== 'CHANGES_REQUESTED') {
+							pr_state = state;
 						}
-						case 'REVIEWED': {
-							const link = reviewURLs.get(user);
-							if (pr.data.state === 'open') {
-								reviewTracker.push(`[💬 @${user}](${link})`)
-							} else {
-								reviewTracker.push(`💬`);
-							}
-							
-							if (pr.data.state === 'open' && pr_state === 'PENDING') {
-								pr_state = state;
-							}
+						break;
+					}
+					case 'CHANGES_REQUESTED': {
+						const link = reviewURLs.get(user);
+						if (pr.data.state === 'open') {
+							reviewTracker.push(`[⭕ @${user}](${link})`)
+						} else {
+							reviewTracker.push(`⭕`);
+						}
+						// GitHub Actions shouldn't factor into overall status
+						if (pr.data.state === 'open' && user !== 'github-actions[bot]') {
+							pr_state = state;
+						}
+						break;
+					}
+					case 'REVIEWED': {
+						const link = reviewURLs.get(user);
+						if (pr.data.state === 'open') {
+							reviewTracker.push(`[💬 @${user}](${link})`)
+						} else {
+							reviewTracker.push(`💬`);
+						}
+						
+						if (pr.data.state === 'open' && pr_state === 'PENDING') {
+							pr_state = state;
 						}
 					}
 				}
@@ -339,7 +334,7 @@ export default {
 		if(!reply)
 			return;
 
-		interaction.reply(reply);
+		interaction.editReply({...reply});
 		
 	},
 	async button(interaction: ButtonInteraction)
