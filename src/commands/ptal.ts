@@ -79,15 +79,6 @@ function GetReviewStateFromReview(state: string): PullRequestState
 
 const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
 {	
-	// Allow /ptal in test server
-	if (interaction.guild?.name !== 'bot test') {
-		if(!(await interaction.guild?.channels.fetch(interaction.channelId))?.name.includes("ptal"))
-		{
-			interaction.reply({content: "This command can only be used in PTAL channels", ephemeral: true})
-			return null;
-		}
-	}
-
 	let urls: string[] = [];
 	let components: any[] = [];
 	const isUpdate = interaction.type === InteractionType.MessageComponent;
