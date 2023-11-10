@@ -1,10 +1,26 @@
 import { URL } from "node:url";
-import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions, ButtonInteraction, ButtonComponent, ColorResolvable, InteractionType } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions, ButtonInteraction, ButtonComponent, ColorResolvable, InteractionType, MessagePayload } from "discord.js";
 import { Octokit } from "@octokit/rest";
+import { RequestError } from "@octokit/request-error";
+import { setTimeout } from "node:timers/promises";
 
 import { getDefaultEmbed } from "../utils/embeds.js";
 
-function TryParseURL(url: string, interaction: ChatInputCommandInteraction | ButtonInteraction)
+async function ReplyOrEditReply(interaction: ChatInputCommandInteraction | ButtonInteraction, replyOptions: string | InteractionReplyOptions | MessagePayload)
+{
+	if(interaction instanceof ChatInputCommandInteraction)
+	{
+		await interaction.editReply(replyOptions);
+		await setTimeout(5000);
+		await interaction.deleteReply();
+	}
+	else
+	{
+		await interaction.reply(replyOptions);
+	}
+}
+
+async function TryParseURL(url: string, interaction: ChatInputCommandInteraction | ButtonInteraction)
 {
 	try
 	{
@@ -14,10 +30,10 @@ function TryParseURL(url: string, interaction: ChatInputCommandInteraction | But
 	{
 		if(exception instanceof TypeError)
 		{
-			interaction.reply({content: `The following URL is invalid: ${url}`});
+			await ReplyOrEditReply(interaction, {content: `The following URL is invalid: ${url}`});
 			return null;
 		}
-		interaction.reply({content: "Something went wrong while parsing your URL's"});
+		await ReplyOrEditReply(interaction, {content: "Something went wrong while parsing your URL's"});
 		return null;
 	}
 }
@@ -91,32 +107,39 @@ const generateReplyFromInteraction = async (description: string, github: string,
 	let content = "";
 	let pr_state: PullRequestState = 'PENDING';
 
-	let githubURL = TryParseURL(githubOption, interaction);
-	if(githubURL)
+	//github
 	{
-		const pathSections = githubURL.pathname.split("/");
-		pathSections.shift();
-		if(githubURL.hostname != "github.com" || pathSections.length != 4 || pathSections[2] != "pull" || !Number.parseInt(pathSections[3]))
+		const githubRE = /https:\/\/github\.com\/(?<ORGANISATION>[^\/]+)\/(?<REPOSITORY>[^\/]+)\/pull\/(?<NUMBER>\d+)/;
+		const otherRE = /((?<ORGANISATION>[^\/]+)\/)?(?<REPOSITORY>[^(#|\s)]+)(#|\s)(?<NUMBER>\d+)/;
+
+		let match: RegExpMatchArray | null;
+		if((match = githubOption.match(githubRE)) == null)
 		{
-			interaction.reply({content: `Please link a pull request. Format: \`https://github.com/ORGANISATION/REPOSITORY/pull/NUMBER\``, ephemeral: true});
-			return null;
+			if((match = githubOption.match(otherRE)) == null)
+			{
+				interaction.reply({content: "The github PR entered wasn't in a supported format", ephemeral: true});
+				return null;
+			}
 		}
 
-		const [owner, repo, _, id] = pathSections;
-		const pull_number = Number.parseInt(id);
+		let groups = match.groups!;
+
 		const pr_info = {
-			owner,
-			repo,
-			pull_number
+			owner: groups["ORGANISATION"] ?? "withastro",
+			repo: groups["REPOSITORY"],
+			pull_number: parseInt(groups["NUMBER"])
 		}
-		embed.addFields({ name: "Repository", value: `[${owner}/${repo}#${pull_number}](https://github.com/${owner}/${repo}/pull/${id})` });
-		embed.setURL(githubURL.href);
+
+		let url = `https://github.com/${pr_info.owner}/${pr_info.repo}/pull/${pr_info.pull_number}`;
+
+		embed.addFields({ name: "Repository", value: `[${pr_info.owner}/${pr_info.repo}#${pr_info.pull_number}](${url})` });
+		embed.setURL(url);
 
 		let githubLink = new ButtonBuilder()
-			.setEmoji(GetEmojiFromURL(githubURL, interaction))
+			.setEmoji(GetEmojiFromURL(new URL(url), interaction))
 			.setLabel("View on Github")
 			.setStyle(ButtonStyle.Link)
-			.setURL(githubURL.href);
+			.setURL(url);
 
 		components.push(githubLink);
 
@@ -127,7 +150,7 @@ const generateReplyFromInteraction = async (description: string, github: string,
 
 		try
 		{
-			let pr = await octokit.rest.pulls.get({ owner, repo, pull_number });
+			let pr = await octokit.rest.pulls.get(pr_info);
 			embed.setAuthor({ name: pr.data.user.login, iconURL: `https://github.com/${pr.data.user.login}.png` })
 
 			let reviewTracker: string[] = [];
@@ -223,17 +246,18 @@ const generateReplyFromInteraction = async (description: string, github: string,
 		}
 		catch (error)
 		{
+			if(error instanceof RequestError && error.status != 404)
+			{
 				console.error(error);
-				interaction.reply({ content: "Something went wrong when parsing your pull request. Are you sure the URL you submitted is correct?", ephemeral: true });
-				return null;
+			}
+			await ReplyOrEditReply(interaction, { content: "Something went wrong when parsing your pull request. Are you sure that the pull request you submitted exists?" })
+			return null;
 		}
 	}
-	else
-		return null;
 
 	if(deploymentOption)
 	{
-		let deployment = TryParseURL(deploymentOption, interaction);
+		let deployment = await TryParseURL(deploymentOption, interaction);
 		if(deployment)
 		{
 			let deploymentLink = new ButtonBuilder()
@@ -259,7 +283,7 @@ const generateReplyFromInteraction = async (description: string, github: string,
 	let parsedURLs = true;
 
 	for (const url of urls) {
-		const urlObject = TryParseURL(url, interaction);
+		const urlObject = await TryParseURL(url, interaction);
 
 		if (!urlObject) {
 			parsedURLs = false;
