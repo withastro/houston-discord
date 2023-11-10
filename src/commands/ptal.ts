@@ -3,7 +3,6 @@ import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, Button
 import { Octokit } from "@octokit/rest";
 
 import { getDefaultEmbed } from "../utils/embeds.js";
-import { type } from "node:os";
 
 function TryParseURL(url: string, interaction: ChatInputCommandInteraction | ButtonInteraction)
 {
