@@ -93,8 +93,14 @@ function GetReviewStateFromReview(state: string): PullRequestState
 	}
 }
 
-const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
+const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, emoji: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
 {	
+
+	if(emoji)
+	{
+		emoji = emoji.trim();
+	}
+
 	let urls: string[] = [];
 	let components: any[] = [];
 	const isUpdate = interaction.type === InteractionType.MessageComponent;
@@ -170,65 +176,62 @@ const generateReplyFromInteraction = async (description: string, github: string,
 				embed.setTitle(`[${pr_state}] ${pr.data.title}`)
 			}
 
-			if (pr.data.review_comments > 0)
-			{
-				let { data: reviews } = await octokit.rest.pulls.listReviews({ ...pr_info, per_page: 100 });
-				const reviewsByUser = new Map<string, PullRequestState>();
-				const reviewURLs = new Map<string, string>();
-				for (let { state: rawState, user, html_url } of reviews) {
-					const id = user?.login;
-					if (!id) continue;
-					// Filter out reviews from the author and GitHub Actions, they aren't relevant
-					if (id === pr.data.user.login || id === 'github-actions[bot]') {
-						continue;
-					}
-					const current = reviewsByUser.get(id);
-					const state = GetReviewStateFromReview(rawState)
-					if (state === 'REVIEWED' && current) {
-						// Plain reviews after an approval/block should not factor into the overall status
-						continue;
-					}
-					reviewsByUser.set(id, state)
-					reviewURLs.set(id, html_url)
+			let { data: reviews } = await octokit.rest.pulls.listReviews({ ...pr_info, per_page: 100 });
+			const reviewsByUser = new Map<string, PullRequestState>();
+			const reviewURLs = new Map<string, string>();
+			for (let { state: rawState, user, html_url } of reviews) {
+				const id = user?.login;
+				if (!id) continue;
+				// Filter out reviews from the author and GitHub Actions, they aren't relevant
+				if (id === pr.data.user.login || id === 'github-actions[bot]' || id === "astrobot-houston") {
+					continue;
 				}
-				for (const [user, state] of reviewsByUser) {
-					switch (state) {
-						case 'APPROVED': {
-							const link = reviewURLs.get(user);
-							if (pr.data.state === 'open') {
-								reviewTracker.push(`[✅ @${user}](${link})`)
-							} else {
-								reviewTracker.push(`✅`);
-							}
-							if (pr.data.state === 'open' && pr_state !== 'CHANGES_REQUESTED') {
-								pr_state = state;
-							}
-							break;
+				const current = reviewsByUser.get(id);
+				const state = GetReviewStateFromReview(rawState)
+				if (state === 'REVIEWED' && current) {
+					// Plain reviews after an approval/block should not factor into the overall status
+					continue;
+				}
+				reviewsByUser.set(id, state)
+				reviewURLs.set(id, html_url)
+			}
+			for (const [user, state] of reviewsByUser) {
+				switch (state) {
+					case 'APPROVED': {
+						const link = reviewURLs.get(user);
+						if (pr.data.state === 'open') {
+							reviewTracker.push(`[✅ @${user}](${link})`)
+						} else {
+							reviewTracker.push(`✅`);
 						}
-						case 'CHANGES_REQUESTED': {
-							const link = reviewURLs.get(user);
-							if (pr.data.state === 'open') {
-								reviewTracker.push(`[⭕ @${user}](${link})`)
-							} else {
-								reviewTracker.push(`⭕`);
-							}
-							// GitHub Actions shouldn't factor into overall status
-							if (pr.data.state === 'open' && user !== 'github-actions[bot]') {
-								pr_state = state;
-							}
-							break;
+						if (pr.data.state === 'open' && pr_state !== 'CHANGES_REQUESTED') {
+							pr_state = state;
 						}
-						case 'REVIEWED': {
-							const link = reviewURLs.get(user);
-							if (pr.data.state === 'open') {
-								reviewTracker.push(`[💬 @${user}](${link})`)
-							} else {
-								reviewTracker.push(`💬`);
-							}
-							
-							if (pr.data.state === 'open' && pr_state === 'PENDING') {
-								pr_state = state;
-							}
+						break;
+					}
+					case 'CHANGES_REQUESTED': {
+						const link = reviewURLs.get(user);
+						if (pr.data.state === 'open') {
+							reviewTracker.push(`[⭕ @${user}](${link})`)
+						} else {
+							reviewTracker.push(`⭕`);
+						}
+						// GitHub Actions shouldn't factor into overall status
+						if (pr.data.state === 'open' && user !== 'github-actions[bot]') {
+							pr_state = state;
+						}
+						break;
+					}
+					case 'REVIEWED': {
+						const link = reviewURLs.get(user);
+						if (pr.data.state === 'open') {
+							reviewTracker.push(`[💬 @${user}](${link})`)
+						} else {
+							reviewTracker.push(`💬`);
+						}
+						
+						if (pr.data.state === 'open' && pr_state === 'PENDING') {
+							pr_state = state;
 						}
 					}
 				}
@@ -315,7 +318,7 @@ const generateReplyFromInteraction = async (description: string, github: string,
 	let actionRow = new ActionRowBuilder<ButtonBuilder>();
 	actionRow.addComponents(...components);
 
-	return {content: `**PTAL** ${description}`, embeds: [embed], components: [actionRow]};
+	return {content: `${(emoji != " " && emoji != null)? `${emoji} ` : ""}**PTAL** ${description}`, embeds: [embed], components: [actionRow]};
 }
 
 export default {
@@ -337,10 +340,19 @@ export default {
 		.addStringOption(option =>
 				option.setName("other")
 				.setDescription("Other links related to the PTAL, comma seperated")
-				.setRequired(false)),
+				.setRequired(false))
+		.addStringOption(option => 
+			option.setName("type")
+			.setDescription("The type of the PTAL request")
+			.setRequired(false)
+			.setChoices(
+				// space in normal is required to avoid an error for the string being empty
+				{name: "normal", value: " "},
+				{name: "baby", value: "🍼"}
+			)),
 	async execute(interaction: ChatInputCommandInteraction) {
 
-		const reply = await generateReplyFromInteraction(interaction.options.getString("description", true), interaction.options.getString("github", true), interaction.options.getString("deployment", false), interaction.options.getString("other", false), interaction);
+		const reply = await generateReplyFromInteraction(interaction.options.getString("description", true), interaction.options.getString("github", true), interaction.options.getString("deployment", false), interaction.options.getString("other", false), interaction.options.getString("type", false), interaction);
 
 		if(!reply)
 			return;
@@ -355,6 +367,14 @@ export default {
 		if(parts[1] == "refresh")
 		{
 			let descriptionArray = interaction.message.content.split(" ");
+
+			let emoji = null;
+			if(descriptionArray[0] != "**PTAL**")
+			{
+				emoji = descriptionArray[0];
+				descriptionArray.shift();
+			}
+
 			descriptionArray.shift();
 			let description = descriptionArray.join(" ");
 
@@ -381,7 +401,7 @@ export default {
 			}
 
 			await interaction.deferUpdate();
-			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), interaction);
+			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), emoji, interaction);
 			if (!reply) return;
 			
 			try {
