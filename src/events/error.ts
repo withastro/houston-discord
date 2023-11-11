@@ -1,4 +1,4 @@
-import { Client, Events, ErrorEvent } from 'discord.js';
+import { Events, ErrorEvent } from 'discord.js';
 
 export default {
 	event: Events.Error,

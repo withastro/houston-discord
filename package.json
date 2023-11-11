@@ -3,13 +3,14 @@
   "private": true,
   "version": "1.0.0",
   "description": "",
-  "main": "lib/app.js",
+  "main": "dist/app.js",
   "type": "module",
   "scripts": {
     "build": "tsc --build --verbose",
     "start": "node .",
     "dev": "tsc && node .",
-    "preinstall": "npx only-allow pnpm"
+    "preinstall": "npx only-allow pnpm",
+		"lint": "eslint . --report-unused-disable-directives"
   },
   "engines": {
     "node": ">=18.18.0",
@@ -27,6 +28,12 @@
   "devDependencies": {
     "@types/node": "^18.17.18",
     "@types/node-schedule": "^2.1.0",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0",
+    "eslint": "^8.53.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "prettier": "^3.0.3",
     "typescript": "^5.2.2"
   },
   "license": "MIT"

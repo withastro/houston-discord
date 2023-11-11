@@ -1,0 +1,8 @@
+# Directories
+.github
+dist
+node_modules
+
+# Files
+**/*.d.ts
+pnpm-lock.yaml
