@@ -10,7 +10,11 @@
     "start": "node .",
     "dev": "tsc && node .",
     "preinstall": "npx only-allow pnpm",
-		"lint": "eslint . --report-unused-disable-directives"
+    "lint": "eslint . --report-unused-disable-directives",
+    "format": "pnpm run format:code",
+		"format:ci": "pnpm run format:imports && pnpm run format:code",
+    "format:code": "prettier . -w --cache",
+		"format:imports": "organize-imports-cli ./tsconfig.json"
   },
   "engines": {
     "node": ">=18.18.0",
@@ -23,7 +27,8 @@
     "discord.js": "^14.13.0",
     "dotenv": "^16.3.1",
     "html-entities": "^2.4.0",
-    "node-schedule": "^2.1.1"
+    "node-schedule": "^2.1.1",
+    "organize-imports-cli": "^0.10.0"
   },
   "devDependencies": {
     "@types/node": "^18.17.18",
