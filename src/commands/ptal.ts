@@ -1,5 +1,5 @@
 import { URL } from "node:url";
-import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions, ButtonInteraction, ButtonComponent, ColorResolvable, InteractionType, APIApplicationCommandOptionChoice } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions, ButtonInteraction, ButtonComponent, ColorResolvable, InteractionType } from "discord.js";
 import { Octokit } from "@octokit/rest";
 
 import { getDefaultEmbed } from "../utils/embeds.js";

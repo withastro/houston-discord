@@ -1,4 +1,4 @@
-import { Client, Events, ShardEvents } from 'discord.js';
+import { ShardEvents } from 'discord.js';
 
 export default {
 	event: ShardEvents.Error,
