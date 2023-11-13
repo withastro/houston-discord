@@ -1,87 +1,104 @@
-import { URL } from "node:url";
-import { SlashCommandBuilder, ChatInputCommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, InteractionReplyOptions, ButtonInteraction, ButtonComponent, ColorResolvable, InteractionType } from "discord.js";
-import { Octokit } from "@octokit/rest";
+import { Octokit } from '@octokit/rest';
+import {
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonComponent,
+	ButtonInteraction,
+	ButtonStyle,
+	ChatInputCommandInteraction,
+	ColorResolvable,
+	InteractionReplyOptions,
+	InteractionType,
+	SlashCommandBuilder,
+} from 'discord.js';
+import { URL } from 'node:url';
 
-import { getDefaultEmbed } from "../utils/embeds.js";
+import { getDefaultEmbed } from '../utils/embeds.js';
 
-function TryParseURL(url: string, interaction: ChatInputCommandInteraction | ButtonInteraction)
-{
-	try
-	{
+function TryParseURL(url: string, interaction: ChatInputCommandInteraction | ButtonInteraction) {
+	try {
 		return new URL(url.trim());
-	}
-	catch (exception)
-	{
-		if(exception instanceof TypeError)
-		{
-			interaction.reply({content: `The following URL is invalid: ${url}`});
+	} catch (exception) {
+		if (exception instanceof TypeError) {
+			interaction.reply({ content: `The following URL is invalid: ${url}` });
 			return null;
 		}
-		interaction.reply({content: "Something went wrong while parsing your URL's"});
+		interaction.reply({ content: "Something went wrong while parsing your URL's" });
 		return null;
 	}
 }
 
-function GetEmojiFromURL(url: URL, interaction: ChatInputCommandInteraction | ButtonInteraction)
-{
-	let apexDomain = url.hostname.split(".").at(-2);
-	let emoji = interaction.guild?.emojis.cache.find(emoji => emoji.name == apexDomain);
+function GetEmojiFromURL(url: URL, interaction: ChatInputCommandInteraction | ButtonInteraction) {
+	let apexDomain = url.hostname.split('.').at(-2);
+	let emoji = interaction.guild?.emojis.cache.find((emoji) => emoji.name == apexDomain);
 
-	if(emoji)
-	{
+	if (emoji) {
 		return `<:${emoji.name}:${emoji.id}>`;
-	}
-	else
-	{
-		return "❓";
+	} else {
+		return '❓';
 	}
 }
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
 type PullRequestState = 'PENDING' | 'REVIEWED' | 'CHANGES_REQUESTED' | 'APPROVED' | 'MERGED' | 'CLOSED';
-function GetColorFromPullRequestState(state: PullRequestState): ColorResolvable
-{
+function GetColorFromPullRequestState(state: PullRequestState): ColorResolvable {
 	switch (state) {
-		case "PENDING": return 'Blue'
-		case "REVIEWED": return 'Gold'
-		case "CHANGES_REQUESTED": return 'Red'
-		case "APPROVED": return 'Green'
-		case "MERGED": return 'Grey'
-		case "CLOSED": return 'Grey'
+		case 'PENDING':
+			return 'Blue';
+		case 'REVIEWED':
+			return 'Gold';
+		case 'CHANGES_REQUESTED':
+			return 'Red';
+		case 'APPROVED':
+			return 'Green';
+		case 'MERGED':
+			return 'Grey';
+		case 'CLOSED':
+			return 'Grey';
 	}
 }
-function GetHumanStatusFromPullRequestState(state: PullRequestState): string
-{
+function GetHumanStatusFromPullRequestState(state: PullRequestState): string {
 	switch (state) {
-		case "PENDING": return '⏳ Awaiting Review'
-		case "REVIEWED": return '💬 Reviewed'
-		case "CHANGES_REQUESTED": return '⭕ Blocked'
-		case "APPROVED": return '✅ Approved'
-		case "MERGED": return '🟣 Merged'
-		case "CLOSED": return '🗑️ Closed'
+		case 'PENDING':
+			return '⏳ Awaiting Review';
+		case 'REVIEWED':
+			return '💬 Reviewed';
+		case 'CHANGES_REQUESTED':
+			return '⭕ Blocked';
+		case 'APPROVED':
+			return '✅ Approved';
+		case 'MERGED':
+			return '🟣 Merged';
+		case 'CLOSED':
+			return '🗑️ Closed';
 	}
 }
 
-function GetReviewStateFromReview(state: string): PullRequestState
-{
+function GetReviewStateFromReview(state: string): PullRequestState {
 	switch (state) {
-		case "COMMENTED":
-		case "DISMISSED": 
-			return 'REVIEWED'
-		case "CHANGES_REQUESTED": return 'CHANGES_REQUESTED'
-		case "APPROVED": return 'APPROVED'
+		case 'COMMENTED':
+		case 'DISMISSED':
+			return 'REVIEWED';
+		case 'CHANGES_REQUESTED':
+			return 'CHANGES_REQUESTED';
+		case 'APPROVED':
+			return 'APPROVED';
 		default: {
 			throw new Error(`Unhandled Review State "${state}"`);
 		}
 	}
 }
 
-const generateReplyFromInteraction = async (description: string, github: string, deployment: string | null, other: string | null, emoji: string | null, interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<InteractionReplyOptions | null> => 
-{	
-
-	if(emoji)
-	{
+const generateReplyFromInteraction = async (
+	description: string,
+	github: string,
+	deployment: string | null,
+	other: string | null,
+	emoji: string | null,
+	interaction: ChatInputCommandInteraction | ButtonInteraction
+): Promise<InteractionReplyOptions | null> => {
+	if (emoji) {
 		emoji = emoji.trim();
 	}
 
@@ -94,17 +111,23 @@ const generateReplyFromInteraction = async (description: string, github: string,
 	const deploymentOption = deployment;
 	const otherOption = other;
 
-	let content = "";
+	let content = '';
 	let pr_state: PullRequestState = 'PENDING';
 
 	let githubURL = TryParseURL(githubOption, interaction);
-	if(githubURL)
-	{
-		const pathSections = githubURL.pathname.split("/");
+	if (githubURL) {
+		const pathSections = githubURL.pathname.split('/');
 		pathSections.shift();
-		if(githubURL.hostname != "github.com" || pathSections.length != 4 || pathSections[2] != "pull" || !Number.parseInt(pathSections[3]))
-		{
-			interaction.reply({content: `Please link a pull request. Format: \`https://github.com/ORGANISATION/REPOSITORY/pull/NUMBER\``, ephemeral: true});
+		if (
+			githubURL.hostname != 'github.com' ||
+			pathSections.length != 4 ||
+			pathSections[2] != 'pull' ||
+			!Number.parseInt(pathSections[3])
+		) {
+			interaction.reply({
+				content: `Please link a pull request. Format: \`https://github.com/ORGANISATION/REPOSITORY/pull/NUMBER\``,
+				ephemeral: true,
+			});
 			return null;
 		}
 
@@ -113,44 +136,42 @@ const generateReplyFromInteraction = async (description: string, github: string,
 		const pr_info = {
 			owner,
 			repo,
-			pull_number
-		}
-		embed.addFields({ name: "Repository", value: `[${owner}/${repo}#${pull_number}](https://github.com/${owner}/${repo}/pull/${id})` });
+			pull_number,
+		};
+		embed.addFields({
+			name: 'Repository',
+			value: `[${owner}/${repo}#${pull_number}](https://github.com/${owner}/${repo}/pull/${id})`,
+		});
 		embed.setURL(githubURL.href);
 
 		let githubLink = new ButtonBuilder()
 			.setEmoji(GetEmojiFromURL(githubURL, interaction))
-			.setLabel("View on Github")
+			.setLabel('View on Github')
 			.setStyle(ButtonStyle.Link)
 			.setURL(githubURL.href);
 
 		components.push(githubLink);
 
-		if(interaction instanceof ChatInputCommandInteraction)
-		{
+		if (interaction instanceof ChatInputCommandInteraction) {
 			await interaction.deferReply();
 		}
 
-		try
-		{
+		try {
 			let pr = await octokit.rest.pulls.get({ owner, repo, pull_number });
-			embed.setAuthor({ name: pr.data.user.login, iconURL: `https://github.com/${pr.data.user.login}.png` })
+			embed.setAuthor({ name: pr.data.user.login, iconURL: `https://github.com/${pr.data.user.login}.png` });
 
 			let reviewTracker: string[] = [];
 			if (pr.data.state === 'closed') {
-				if (pr.data.merged)
-				{
+				if (pr.data.merged) {
 					pr_state = 'MERGED';
-				}
-				else
-				{
+				} else {
 					pr_state = 'CLOSED';
 				}
 			}
 			if (pr.data.state === 'open') {
 				embed.setTitle(pr.data.title);
 			} else {
-				embed.setTitle(`[${pr_state}] ${pr.data.title}`)
+				embed.setTitle(`[${pr_state}] ${pr.data.title}`);
 			}
 
 			let { data: reviews } = await octokit.rest.pulls.listReviews({ ...pr_info, per_page: 100 });
@@ -160,24 +181,24 @@ const generateReplyFromInteraction = async (description: string, github: string,
 				const id = user?.login;
 				if (!id) continue;
 				// Filter out reviews from the author and GitHub Actions, they aren't relevant
-				if (id === pr.data.user.login || id === 'github-actions[bot]' || id === "astrobot-houston") {
+				if (id === pr.data.user.login || id === 'github-actions[bot]' || id === 'astrobot-houston') {
 					continue;
 				}
 				const current = reviewsByUser.get(id);
-				const state = GetReviewStateFromReview(rawState)
+				const state = GetReviewStateFromReview(rawState);
 				if (state === 'REVIEWED' && current) {
 					// Plain reviews after an approval/block should not factor into the overall status
 					continue;
 				}
-				reviewsByUser.set(id, state)
-				reviewURLs.set(id, html_url)
+				reviewsByUser.set(id, state);
+				reviewURLs.set(id, html_url);
 			}
 			for (const [user, state] of reviewsByUser) {
 				switch (state) {
 					case 'APPROVED': {
 						const link = reviewURLs.get(user);
 						if (pr.data.state === 'open') {
-							reviewTracker.push(`[✅ @${user}](${link})`)
+							reviewTracker.push(`[✅ @${user}](${link})`);
 						} else {
 							reviewTracker.push(`✅`);
 						}
@@ -189,7 +210,7 @@ const generateReplyFromInteraction = async (description: string, github: string,
 					case 'CHANGES_REQUESTED': {
 						const link = reviewURLs.get(user);
 						if (pr.data.state === 'open') {
-							reviewTracker.push(`[⭕ @${user}](${link})`)
+							reviewTracker.push(`[⭕ @${user}](${link})`);
 						} else {
 							reviewTracker.push(`⭕`);
 						}
@@ -202,11 +223,11 @@ const generateReplyFromInteraction = async (description: string, github: string,
 					case 'REVIEWED': {
 						const link = reviewURLs.get(user);
 						if (pr.data.state === 'open') {
-							reviewTracker.push(`[💬 @${user}](${link})`)
+							reviewTracker.push(`[💬 @${user}](${link})`);
 						} else {
 							reviewTracker.push(`💬`);
 						}
-						
+
 						if (pr.data.state === 'open' && pr_state === 'PENDING') {
 							pr_state = state;
 						}
@@ -214,48 +235,45 @@ const generateReplyFromInteraction = async (description: string, github: string,
 				}
 			}
 			embed.setColor(GetColorFromPullRequestState(pr_state));
-			embed.addFields({ name: "Status", value: GetHumanStatusFromPullRequestState(pr_state), inline: true });
+			embed.addFields({ name: 'Status', value: GetHumanStatusFromPullRequestState(pr_state), inline: true });
 
-			const { data: files } = await octokit.rest.pulls.listFiles(pr_info)
-			const changesets = files.filter(file => file.filename.startsWith(".changeset/") && file.status == "added")
-			embed.addFields({ name: "Changeset", value: changesets.length > 0 ? '✅ Added' : '⬜ None', inline: true })
+			const { data: files } = await octokit.rest.pulls.listFiles(pr_info);
+			const changesets = files.filter((file) => file.filename.startsWith('.changeset/') && file.status == 'added');
+			embed.addFields({ name: 'Changeset', value: changesets.length > 0 ? '✅ Added' : '⬜ None', inline: true });
 
 			if (reviewTracker.length > 0) {
-				embed.addFields({name: "Reviews", value: reviewTracker.join(pr.data.state === 'open' ? '\n' : '') });
+				embed.addFields({ name: 'Reviews', value: reviewTracker.join(pr.data.state === 'open' ? '\n' : '') });
 			}
+		} catch (error) {
+			console.error(error);
+			interaction.reply({
+				content: 'Something went wrong when parsing your pull request. Are you sure the URL you submitted is correct?',
+				ephemeral: true,
+			});
+			return null;
 		}
-		catch (error)
-		{
-				console.error(error);
-				interaction.reply({ content: "Something went wrong when parsing your pull request. Are you sure the URL you submitted is correct?", ephemeral: true });
-				return null;
-		}
-	}
-	else
-		return null;
+	} else return null;
 
-	if(deploymentOption)
-	{
+	if (deploymentOption) {
 		let deployment = TryParseURL(deploymentOption, interaction);
-		if(deployment)
-		{
+		if (deployment) {
 			let deploymentLink = new ButtonBuilder()
 				.setEmoji(GetEmojiFromURL(deployment, interaction))
-				.setLabel("View as Preview")
+				.setLabel('View as Preview')
 				.setStyle(ButtonStyle.Link)
 				.setURL(deployment.href);
 
 			components.push(deploymentLink);
-		}
-		else
-			return null;
+		} else return null;
 	}
-	if(otherOption)
-	{
-		urls.push(...otherOption.split(","));
+	if (otherOption) {
+		urls.push(...otherOption.split(','));
 	}
-	const verb = isUpdate ? 'Updated' : 'Requested'
-	embed.setFooter({ text: `${verb} by @${interaction.user.displayName}`, iconURL: interaction.user.displayAvatarURL() })
+	const verb = isUpdate ? 'Updated' : 'Requested';
+	embed.setFooter({
+		text: `${verb} by @${interaction.user.displayName}`,
+		iconURL: interaction.user.displayAvatarURL(),
+	});
 	embed.setTimestamp(new Date());
 
 	// required since return from foreach doesn't return out of full function
@@ -273,20 +291,18 @@ const generateReplyFromInteraction = async (description: string, github: string,
 		content += `<${urlObject.href}>\n`;
 	}
 
-	if(!parsedURLs)
-		return null;
+	if (!parsedURLs) return null;
 
-	if(content.length > 0)
-	{
+	if (content.length > 0) {
 		embed.setDescription(content);
 	}
-	
+
 	if (!['MERGED', 'CLOSED'].includes(pr_state)) {
 		const refreshButton = new ButtonBuilder()
 			.setCustomId(`ptal-refresh`)
-			.setLabel("Refresh")
+			.setLabel('Refresh')
 			.setStyle(ButtonStyle.Primary)
-			.setEmoji("🔁");
+			.setEmoji('🔁');
 
 		components.push(refreshButton);
 	}
@@ -294,65 +310,64 @@ const generateReplyFromInteraction = async (description: string, github: string,
 	let actionRow = new ActionRowBuilder<ButtonBuilder>();
 	actionRow.addComponents(...components);
 
-	return {content: `${(emoji != " " && emoji != null)? `${emoji} ` : ""}**PTAL** ${description}`, embeds: [embed], components: [actionRow]};
-}
+	return {
+		content: `${emoji != ' ' && emoji != null ? `${emoji} ` : ''}**PTAL** ${description}`,
+		embeds: [embed],
+		components: [actionRow],
+	};
+};
 
 export default {
 	data: new SlashCommandBuilder()
-		.setName("ptal")
-		.setDescription("Open a Please Take a Look (PTAL) request")
-		.addStringOption(option =>
-			option.setName("description")
-			.setDescription("A short description of the PTAL request")
-			.setRequired(true))
-		.addStringOption(option =>
-				option.setName("github")
-				.setDescription("A link to a GitHub pull request")
-				.setRequired(true))
-		.addStringOption(option =>
-				option.setName("deployment")
-				.setDescription("A link to a deployment related to the PTAL")
-				.setRequired(false))
-		.addStringOption(option =>
-				option.setName("other")
-				.setDescription("Other links related to the PTAL, comma seperated")
-				.setRequired(false))
-		.addStringOption(option => 
-			option.setName("type")
-			.setDescription("The type of the PTAL request")
-			.setRequired(false)
-			.setChoices(
+		.setName('ptal')
+		.setDescription('Open a Please Take a Look (PTAL) request')
+		.addStringOption((option) =>
+			option.setName('description').setDescription('A short description of the PTAL request').setRequired(true)
+		)
+		.addStringOption((option) =>
+			option.setName('github').setDescription('A link to a GitHub pull request').setRequired(true)
+		)
+		.addStringOption((option) =>
+			option.setName('deployment').setDescription('A link to a deployment related to the PTAL').setRequired(false)
+		)
+		.addStringOption((option) =>
+			option.setName('other').setDescription('Other links related to the PTAL, comma seperated').setRequired(false)
+		)
+		.addStringOption((option) =>
+			option.setName('type').setDescription('The type of the PTAL request').setRequired(false).setChoices(
 				// space in normal is required to avoid an error for the string being empty
-				{name: "normal", value: " "},
-				{name: "baby", value: "🍼"}
-			)),
+				{ name: 'normal', value: ' ' },
+				{ name: 'baby', value: '🍼' }
+			)
+		),
 	async execute(interaction: ChatInputCommandInteraction) {
+		const reply = await generateReplyFromInteraction(
+			interaction.options.getString('description', true),
+			interaction.options.getString('github', true),
+			interaction.options.getString('deployment', false),
+			interaction.options.getString('other', false),
+			interaction.options.getString('type', false),
+			interaction
+		);
 
-		const reply = await generateReplyFromInteraction(interaction.options.getString("description", true), interaction.options.getString("github", true), interaction.options.getString("deployment", false), interaction.options.getString("other", false), interaction.options.getString("type", false), interaction);
+		if (!reply) return;
 
-		if(!reply)
-			return;
-
-		interaction.editReply({...reply});
-		
+		interaction.editReply({ ...reply });
 	},
-	async button(interaction: ButtonInteraction)
-	{
-		let parts = interaction.customId.split("-");
+	async button(interaction: ButtonInteraction) {
+		let parts = interaction.customId.split('-');
 
-		if(parts[1] == "refresh")
-		{
-			let descriptionArray = interaction.message.content.split(" ");
+		if (parts[1] == 'refresh') {
+			let descriptionArray = interaction.message.content.split(' ');
 
 			let emoji = null;
-			if(descriptionArray[0] != "**PTAL**")
-			{
+			if (descriptionArray[0] != '**PTAL**') {
 				emoji = descriptionArray[0];
 				descriptionArray.shift();
 			}
 
 			descriptionArray.shift();
-			let description = descriptionArray.join(" ");
+			let description = descriptionArray.join(' ');
 
 			const githubButton = interaction.message.components[0].components[0] as ButtonComponent;
 			let otherButton = interaction.message.components[0].components[1] as ButtonComponent;
@@ -361,31 +376,34 @@ export default {
 
 			let desc = interaction.message.embeds[0].description;
 
-			let lines = desc?.split("\n")!;
-			for(let i = lines?.length - 1; i >= 0; i--)
-			{
+			let lines = desc?.split('\n')!;
+			for (let i = lines?.length - 1; i >= 0; i--) {
 				const line = lines[i].trim();
-				let words = line.split(" ");
-				if(words.at(-1)?.startsWith("<http"))
-				{
+				let words = line.split(' ');
+				if (words.at(-1)?.startsWith('<http')) {
 					urls.unshift(words.at(-1)!.substring(1, words.at(-1)!.length - 1));
-				}
-				else
-				{
+				} else {
 					break;
 				}
 			}
 
 			await interaction.deferUpdate();
-			const reply = await generateReplyFromInteraction(description, githubButton.url!, otherButton.url, urls.join(","), emoji, interaction);
+			const reply = await generateReplyFromInteraction(
+				description,
+				githubButton.url!,
+				otherButton.url,
+				urls.join(','),
+				emoji,
+				interaction
+			);
 			if (!reply) return;
-			
+
 			try {
 				await interaction.editReply({ content: reply.content, embeds: reply.embeds, components: reply.components });
 			} catch (exception) {
 				console.error(exception);
-				await interaction.editReply({ content: "Something went wrong while updating your /ptal request!" })
+				await interaction.editReply({ content: 'Something went wrong while updating your /ptal request!' });
 			}
 		}
-	}
-}
+	},
+};

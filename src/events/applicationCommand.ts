@@ -5,8 +5,8 @@ export default {
 	event: Events.InteractionCreate,
 	once: false,
 	async execute(interaction: BaseInteraction) {
-		if(!interaction.isChatInputCommand()) return;
-	
+		if (!interaction.isChatInputCommand()) return;
+
 		const client: Client = interaction.client;
 
 		const command = client.commands!.get(interaction.commandName);

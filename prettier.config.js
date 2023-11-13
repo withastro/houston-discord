@@ -12,6 +12,6 @@ export default {
 			options: {
 				useTabs: false,
 			},
-		}
+		},
 	],
 };
