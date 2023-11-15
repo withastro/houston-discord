@@ -118,14 +118,11 @@ const generateReplyFromInteraction = async (description: string, github: string,
 		const githubRE = /((https:\/\/)?github\.com\/)?(?<ORGANISATION>[^\/]+)\/(?<REPOSITORY>[^\/]+)\/pull\/(?<NUMBER>\d+)/;
 		const otherRE = /((?<ORGANISATION>[^\/]+)\/)?(?<REPOSITORY>[^(#|\s|\/)]+)(#)(?<NUMBER>\d+)/;
 
-		let match: RegExpMatchArray | null;
-		if((match = githubOption.match(githubRE)) == null)
+		const match = githubOption.match(githubRE) || githubOption.match(otherRE);
+		if(!match)
 		{
-			if((match = githubOption.match(otherRE)) == null)
-			{
-				interaction.reply({content: "The github PR entered wasn't in a supported format", ephemeral: true});
-				return null;
-			}
+			interaction.reply({content: "The github PR entered wasn't in a supported format", ephemeral: true});
+			return null;
 		}
 
 		let groups = match.groups!;
