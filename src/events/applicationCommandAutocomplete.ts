@@ -1,12 +1,12 @@
-import { BaseInteraction, Events, InteractionType } from 'discord.js';
+import { BaseInteraction, Events } from 'discord.js';
 import { Client } from '../types';
 
 export default {
 	event: Events.InteractionCreate,
 	once: false,
 	async execute(interaction: BaseInteraction) {
-		if(!interaction.isAutocomplete()) return;
-	
+		if (!interaction.isAutocomplete()) return;
+
 		const client: Client = interaction.client;
 
 		const command = client.commands!.get(interaction.commandName);
@@ -16,8 +16,7 @@ export default {
 			return;
 		}
 
-		if(!command.autocomplete)
-		{
+		if (!command.autocomplete) {
 			console.error(`The ${interaction.commandName} command does not have an autocomplete function.`);
 			return;
 		}

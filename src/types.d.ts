@@ -1,4 +1,4 @@
-import discordjs, {SlashCommandBuilder, Collection} from "discord.js"
+import discordjs, { Collection, SlashCommandBuilder } from "discord.js"
 
 declare interface Command {
 	data: SlashCommandBuilder,

@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
 
-dotenv.config()
+dotenv.config();
 
-import("./client/client.js");
+import('./client/client.js');
