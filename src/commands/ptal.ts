@@ -115,8 +115,8 @@ const generateReplyFromInteraction = async (description: string, github: string,
 
 	//github
 	{
-		const githubRE = /https:\/\/github\.com\/(?<ORGANISATION>[^\/]+)\/(?<REPOSITORY>[^\/]+)\/pull\/(?<NUMBER>\d+)/;
-		const otherRE = /((?<ORGANISATION>[^\/]+)\/)?(?<REPOSITORY>[^(#|\s)]+)(#|\s)(?<NUMBER>\d+)/;
+		const githubRE = /(https:\/\/)?(github\.com\/)?(?<ORGANISATION>[^\/]+)\/(?<REPOSITORY>[^\/]+)\/pull\/(?<NUMBER>\d+)/;
+		const otherRE = /((?<ORGANISATION>[^\/]+)\/)?(?<REPOSITORY>[^(#|\s|\/)]+)(#)(?<NUMBER>\d+)/;
 
 		let match: RegExpMatchArray | null;
 		if((match = githubOption.match(githubRE)) == null)
