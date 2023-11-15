@@ -1,11 +1,11 @@
-import discordjs, { Collection, SlashCommandBuilder } from "discord.js"
+import discordjs, { Collection, Interaction, SlashCommandBuilder } from "discord.js"
 
 declare interface Command {
 	data: SlashCommandBuilder,
 	initialize?(): boolean,
-	execute: Function,
-	autocomplete?: Function,
-	button?: Function
+	execute(interaction: Interaction),
+	autocomplete?(interaction: Interaction),
+	button?(interaction: Interaction)
 }
 
 declare interface Client extends discordjs.Client {
@@ -46,6 +46,6 @@ declare interface SearchHit {
 }
 
 declare interface Scheduled {
-	time: string,
+	time?: string,
 	execute: Function
 }
