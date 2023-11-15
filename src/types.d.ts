@@ -2,6 +2,7 @@ import discordjs, { Collection, SlashCommandBuilder } from "discord.js"
 
 declare interface Command {
 	data: SlashCommandBuilder,
+	initialize?(): boolean,
 	execute: Function,
 	autocomplete?: Function,
 	button?: Function

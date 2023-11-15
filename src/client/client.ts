@@ -21,6 +21,14 @@ for (const file of commandFiles) {
 	const command: Command = (await import(filePath.toString())).default;
 
 	if ('data' in command && 'execute' in command) {
+		if(command.initialize)
+		{
+			if(!command.initialize())
+			{
+				console.warn(`Something went wrong while initializing the /${command.data.name} command!`);
+				continue;
+			}
+		}
 		client.commands.set(command.data.name, command);
 	} else {
 		console.warn(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);

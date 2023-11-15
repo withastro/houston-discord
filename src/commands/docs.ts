@@ -1,11 +1,11 @@
-import algoliasearch from 'algoliasearch';
+import algoliasearch, { SearchClient, SearchIndex } from 'algoliasearch';
 import { AutocompleteInteraction, ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { decode } from 'html-entities';
 import { categories, SearchHit } from '../types';
 import { getDefaultEmbed } from '../utils/embeds.js';
 
-const client = algoliasearch(process.env.ALGOLIA_APP_ID!, process.env.ALGOLIA_API_KEY!);
-const index = client.initIndex(process.env.ALGOLIA_INDEX!);
+let client: SearchClient;
+let index: SearchIndex;
 
 const generateNameFromHit = (hit: SearchHit): string => {
 	return decode(
@@ -111,6 +111,19 @@ export default {
 					{ name: 'Русский', value: 'ru' }
 				)
 		),
+		initialize()
+		{
+			if(!process.env.ALGOLIA_APP_ID || !process.env.ALGOLIA_API_KEY || !process.env.ALGOLIA_INDEX)
+			{
+				console.warn("Failed to initialize the /docs command: missing algolia enviroment variables.")
+				return false;
+			}
+	
+			client = algoliasearch(process.env.ALGOLIA_APP_ID, process.env.ALGOLIA_API_KEY);
+			client.initIndex(process.env.ALGOLIA_INDEX)
+	
+			return true;
+	},
 	async execute(interaction: ChatInputCommandInteraction) {
 		await interaction.deferReply({ ephemeral: interaction.options.getBoolean('hidden') ?? true });
 
