@@ -250,13 +250,6 @@ const generateReplyFromInteraction = async (
 			if (reviewTracker.length > 0) {
 				embed.addFields({ name: 'Reviews', value: reviewTracker.join(pr.data.state === 'open' ? '\n' : '') });
 			}
-		} catch (error) {
-			console.error(error);
-			interaction.reply({
-				content: 'Something went wrong when parsing your pull request. Are you sure the URL you submitted is correct?',
-				ephemeral: true,
-			});
-			return null;
 		}
 		catch (error)
 		{
