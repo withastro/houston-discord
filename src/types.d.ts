@@ -1,15 +1,21 @@
-import discordjs, { Collection, Interaction, SlashCommandBuilder } from "discord.js"
+import discordjs, { Collection, ContextMenuCommandBuilder, ContextMenuCommandInteraction, Interaction, SlashCommandBuilder } from "discord.js"
 
-declare interface Command {
+declare interface SlashCommand {
 	data: SlashCommandBuilder,
 	initialize?(): boolean,
-	execute(interaction: Interaction),
+	execute(interaction: ChatInputCommandInteraction),
 	autocomplete?(interaction: Interaction),
 	button?(interaction: Interaction)
 }
 
+declare interface ContextMenuCommand {
+	data: ContextMenuCommandBuilder,
+	execute(interaction: ContextMenuCommandInteraction)
+}
+
 declare interface Client extends discordjs.Client {
-	commands?: Collection<string, Command>
+	slashCommands?: Collection<string, SlashCommand>,
+	contextMenuCommands?: Collection<string, ContextMenuCommand>
 }
 
 declare interface Event {

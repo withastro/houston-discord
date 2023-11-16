@@ -16,7 +16,7 @@ import {
 import { setTimeout } from 'node:timers/promises';
 import { URL } from 'node:url';
 
-import { getDefaultEmbed } from '../utils/embeds.js';
+import { getDefaultEmbed } from '../../utils/embeds.js';
 
 async function ReplyOrEditReply(
 	interaction: ChatInputCommandInteraction | ButtonInteraction,

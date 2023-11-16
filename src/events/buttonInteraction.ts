@@ -9,7 +9,7 @@ export default {
 
 		const client: Client = interaction.client;
 
-		const command = client.commands!.get(interaction.customId.split('-')[0]);
+		const command = client.slashCommands!.get(interaction.customId.split('-')[0]);
 
 		if (!command) {
 			console.error(`No command matching ${interaction.customId.split('-')[0]} was found.`);

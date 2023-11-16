@@ -1,8 +1,8 @@
 import algoliasearch, { SearchClient, SearchIndex } from 'algoliasearch';
 import { AutocompleteInteraction, ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { decode } from 'html-entities';
-import { categories, SearchHit } from '../types';
-import { getDefaultEmbed } from '../utils/embeds.js';
+import { categories, SearchHit } from '../../types';
+import { getDefaultEmbed } from '../../utils/embeds.js';
 
 let client: SearchClient;
 let index: SearchIndex;

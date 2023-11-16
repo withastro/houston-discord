@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import TagStatistics from '../scheduled/weeklyStatistics.js';
-import { getDefaultEmbed } from '../utils/embeds.js';
+import TagStatistics from '../../scheduled/weeklyStatistics.js';
+import { getDefaultEmbed } from '../../utils/embeds.js';
 
 export default {
 	data: new SlashCommandBuilder()

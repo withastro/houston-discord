@@ -5,7 +5,7 @@ import {
 	ChatInputCommandInteraction,
 	SlashCommandBuilder,
 } from 'discord.js';
-import { random } from '../utils/helpers.js';
+import { random } from '../../utils/helpers.js';
 
 const messages = [
 	`Oh no! We'll get right on this.`,

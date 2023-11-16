@@ -1,4 +1,5 @@
 import discordjs, {
+	ApplicationCommand,
 	Collection,
 	IntentsBitField,
 	REST,
@@ -7,7 +8,7 @@ import discordjs, {
 } from 'discord.js';
 import { scheduleJob } from 'node-schedule';
 import fs from 'node:fs';
-import { Client, Command, Event, Scheduled } from '../types';
+import { Client, SlashCommand, Event, Scheduled, ContextMenuCommand } from '../types';
 
 if (!process.env.DISCORD_TOKEN || !process.env.DISCORD_CLIENT_ID) {
 	console.error('The required discord enviroment variables were not set. Unable to start the bot.');
@@ -15,81 +16,116 @@ if (!process.env.DISCORD_TOKEN || !process.env.DISCORD_CLIENT_ID) {
 }
 
 const client: Client = new discordjs.Client({ intents: [IntentsBitField.Flags.Guilds] });
-
-client.commands = new Collection<string, any>();
-
-const commandPath = new URL('../commands', import.meta.url);
-const commandFiles = fs.readdirSync(commandPath).filter((file) => file.endsWith('.js'));
-
-for (const file of commandFiles) {
-	const filePath = new URL(`../commands/${file}`, import.meta.url);
-	const command: Command = (await import(filePath.toString())).default;
-
-	if ('data' in command && 'execute' in command) {
-		if (command.initialize) {
-			if (!command.initialize()) {
-				console.warn(`Something went wrong while initializing the /${command.data.name} command!`);
-				continue;
-			}
-		}
-		client.commands.set(command.data.name, command);
-	} else {
-		console.warn(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
-	}
-}
+client.slashCommands = new Collection<string, SlashCommand>();
+client.contextMenuCommands = new Collection<string, ContextMenuCommand>();
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
-(async () => {
-	try {
-		const commands: RESTPostAPIApplicationCommandsJSONBody[] = [];
+// slash commands
+{
+	const commandPath = new URL('../commands/chat', import.meta.url);
+	const commandFiles = fs.readdirSync(commandPath).filter((file) => file.endsWith('.js'));
 
-		const commandList = Array.from<Command>(client.commands!.values());
+	for (const file of commandFiles) {
+		const filePath = new URL(`../commands/chat/${file}`, import.meta.url);
+		const command: SlashCommand = (await import(filePath.toString())).default;
 
-		for (const i in commandList) {
-			commands.push(commandList[i].data.toJSON());
+		if ('data' in command && 'execute' in command) {
+			if (command.initialize) {
+				if (!command.initialize()) {
+					console.warn(`Something went wrong while initializing the /${command.data.name} command!`);
+					continue;
+				}
+			}
+			client.slashCommands.set(command.data.name, command);
+		} else {
+			console.warn(`[WARNING] The slash command at ${filePath} is missing a required "data" or "execute" property.`);
 		}
-
-		console.log(`Started refreshing ${commands.length} application (/) commands.`);
-
-		const data: any = await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID!), { body: commands });
-
-		console.log(`Successfully reloaded ${data.length} application (/) commands.`);
-	} catch (error) {
-		console.error(error);
-	}
-})();
-
-const eventsPath = new URL('../events', import.meta.url);
-const eventFiles = fs.readdirSync(eventsPath).filter((file) => file.endsWith('.js'));
-
-for (const file of eventFiles) {
-	const filePath = new URL(`../events/${file}`, import.meta.url).toString();
-
-	const event: Event = (await import(filePath)).default;
-	if (event.once) {
-		client.once(event.event, (...args) => event.execute(...args));
-	} else {
-		client.on(event.event, (...args) => event.execute(...args));
 	}
 }
 
-const scheduledPath = new URL('../scheduled', import.meta.url);
-const scheduledFiles = fs.readdirSync(scheduledPath).filter((file) => file.endsWith('.js'));
+// context menu commands
+{
+	const commandPath = new URL('../commands/contextMenu', import.meta.url);
+	const commandFiles = fs.readdirSync(commandPath).filter((file) => file.endsWith('.js'));
 
-for (const file of scheduledFiles) {
-	const filePath = new URL(`../scheduled/${file}`, import.meta.url).toString();
+	for (const file of commandFiles) {
+		const filePath = new URL(`../commands/contextMenu/${file}`, import.meta.url);
+		const command: ContextMenuCommand = (await import(filePath.toString())).default;
 
-	const scheduled: Scheduled = (await import(filePath)).default;
-
-	if (!scheduled.time) {
-		console.warn(`No time was set for the scheduled job at: ./src/scheduled/${file}`);
-		continue;
+		if ('data' in command && 'execute' in command) {
+			client.contextMenuCommands.set(command.data.name, command);
+		} else {
+			console.warn(`[WARNING] The context menu command at ${filePath} is missing a required "data" or "execute" property.`);
+		}
 	}
+}
 
-	scheduleJob(scheduled.time, async () => {
-		scheduled.execute(client);
-	});
+// register all commands
+{
+	(async () => {
+		try {
+			const commands: RESTPostAPIApplicationCommandsJSONBody[] = [];
+
+			const slashCommandList = Array.from(client.slashCommands!.values());
+
+			for (const i in slashCommandList) {
+				commands.push(slashCommandList[i].data.toJSON());
+			}
+
+			const contextMenuCommandList = Array.from(client.contextMenuCommands!.values());
+
+			for (const i in contextMenuCommandList) {
+				commands.push(contextMenuCommandList[i].data.toJSON());
+			}
+
+			console.log(`Started refreshing ${commands.length} commands.`);
+
+			const data: any = await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID!), { body: commands });
+
+			console.log(`Successfully reloaded ${data.length} commands.`);
+		} catch (error) {
+			console.error(error);
+		}
+	})();
+}
+
+// events
+{
+	const eventsPath = new URL('../events', import.meta.url);
+	const eventFiles = fs.readdirSync(eventsPath).filter((file) => file.endsWith('.js'));
+
+	for (const file of eventFiles) {
+		const filePath = new URL(`../events/${file}`, import.meta.url).toString();
+
+		const event: Event = (await import(filePath)).default;
+		if (event.once) {
+			client.once(event.event, (...args) => event.execute(...args));
+		} else {
+			client.on(event.event, (...args) => event.execute(...args));
+		}
+	}
+}
+
+// scheduled jobs
+{
+	const scheduledPath = new URL('../scheduled', import.meta.url);
+	const scheduledFiles = fs.readdirSync(scheduledPath).filter((file) => file.endsWith('.js'));
+
+	for (const file of scheduledFiles) {
+		const filePath = new URL(`../scheduled/${file}`, import.meta.url).toString();
+
+		const scheduled: Scheduled = (await import(filePath)).default;
+
+		if (!scheduled.time) {
+			console.warn(`No time was set for the scheduled job at: ./src/scheduled/${file}`);
+			continue;
+		}
+
+		scheduleJob(scheduled.time, async () => {
+			scheduled.execute(client);
+		});
+	}
 }
 
 client.login(process.env.DISCORD_TOKEN);
