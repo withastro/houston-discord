@@ -353,18 +353,16 @@ export default {
 				{ name: 'baby', value: '🍼' }
 			)
 		),
-		async initialize()
-		{
-			if(!process.env.GITHUB_TOKEN)
-			{
-				console.warn("Failed to initialize the /docs command: missing GITHUB_TOKEN enviroment variable.")
-				return false;
-			}
+	async initialize() {
+		if (!process.env.GITHUB_TOKEN) {
+			console.warn('Failed to initialize the /docs command: missing GITHUB_TOKEN enviroment variable.');
+			return false;
+		}
 
-			octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+		octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
-			return true;
-		},
+		return true;
+	},
 	async execute(interaction: ChatInputCommandInteraction) {
 		const reply = await generateReplyFromInteraction(
 			interaction.options.getString('description', true),

@@ -111,18 +111,16 @@ export default {
 					{ name: 'Русский', value: 'ru' }
 				)
 		),
-		initialize()
-		{
-			if(!process.env.ALGOLIA_APP_ID || !process.env.ALGOLIA_API_KEY || !process.env.ALGOLIA_INDEX)
-			{
-				console.warn("Failed to initialize the /docs command: missing algolia enviroment variables.")
-				return false;
-			}
-	
-			client = algoliasearch(process.env.ALGOLIA_APP_ID, process.env.ALGOLIA_API_KEY);
-			client.initIndex(process.env.ALGOLIA_INDEX)
-	
-			return true;
+	initialize() {
+		if (!process.env.ALGOLIA_APP_ID || !process.env.ALGOLIA_API_KEY || !process.env.ALGOLIA_INDEX) {
+			console.warn('Failed to initialize the /docs command: missing algolia enviroment variables.');
+			return false;
+		}
+
+		client = algoliasearch(process.env.ALGOLIA_APP_ID, process.env.ALGOLIA_API_KEY);
+		client.initIndex(process.env.ALGOLIA_INDEX);
+
+		return true;
 	},
 	async execute(interaction: ChatInputCommandInteraction) {
 		await interaction.deferReply({ ephemeral: interaction.options.getBoolean('hidden') ?? true });

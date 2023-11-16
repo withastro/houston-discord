@@ -9,9 +9,8 @@ import { scheduleJob } from 'node-schedule';
 import fs from 'node:fs';
 import { Client, Command, Event, Scheduled } from '../types';
 
-if(!process.env.DISCORD_TOKEN || !process.env.DISCORD_CLIENT_ID)
-{
-	console.error("The required discord enviroment variables were not set. Unable to start the bot.")
+if (!process.env.DISCORD_TOKEN || !process.env.DISCORD_CLIENT_ID) {
+	console.error('The required discord enviroment variables were not set. Unable to start the bot.');
 	process.exit(1);
 }
 
@@ -27,10 +26,8 @@ for (const file of commandFiles) {
 	const command: Command = (await import(filePath.toString())).default;
 
 	if ('data' in command && 'execute' in command) {
-		if(command.initialize)
-		{
-			if(!command.initialize())
-			{
+		if (command.initialize) {
+			if (!command.initialize()) {
 				console.warn(`Something went wrong while initializing the /${command.data.name} command!`);
 				continue;
 			}
@@ -85,9 +82,8 @@ for (const file of scheduledFiles) {
 
 	const scheduled: Scheduled = (await import(filePath)).default;
 
-	if(!scheduled.time)
-	{
-		console.warn(`No time was set for the scheduled job at: ./src/scheduled/${file}`)
+	if (!scheduled.time) {
+		console.warn(`No time was set for the scheduled job at: ./src/scheduled/${file}`);
 		continue;
 	}
 
