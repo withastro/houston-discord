@@ -9,6 +9,12 @@ import { scheduleJob } from 'node-schedule';
 import fs from 'node:fs';
 import { Client, Command, Event, Scheduled } from '../types';
 
+if(!process.env.DISCORD_TOKEN || !process.env.DISCORD_CLIENT_ID)
+{
+	console.error("The required discord enviroment variables were not set. Unable to start the bot.")
+	process.exit(1);
+}
+
 const client: Client = new discordjs.Client({ intents: [IntentsBitField.Flags.Guilds] });
 
 client.commands = new Collection<string, any>();
@@ -21,13 +27,21 @@ for (const file of commandFiles) {
 	const command: Command = (await import(filePath.toString())).default;
 
 	if ('data' in command && 'execute' in command) {
+		if(command.initialize)
+		{
+			if(!command.initialize())
+			{
+				console.warn(`Something went wrong while initializing the /${command.data.name} command!`);
+				continue;
+			}
+		}
 		client.commands.set(command.data.name, command);
 	} else {
 		console.warn(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
 	}
 }
 
-const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
+const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
 	try {
@@ -70,6 +84,12 @@ for (const file of scheduledFiles) {
 	const filePath = new URL(`../scheduled/${file}`, import.meta.url).toString();
 
 	const scheduled: Scheduled = (await import(filePath)).default;
+
+	if(!scheduled.time)
+	{
+		console.warn(`No time was set for the scheduled job at: ./src/scheduled/${file}`)
+		continue;
+	}
 
 	scheduleJob(scheduled.time, async () => {
 		scheduled.execute(client);

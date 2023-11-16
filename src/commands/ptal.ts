@@ -55,8 +55,6 @@ function GetEmojiFromURL(url: URL, interaction: ChatInputCommandInteraction | Bu
 	}
 }
 
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-
 type PullRequestState = 'PENDING' | 'REVIEWED' | 'CHANGES_REQUESTED' | 'APPROVED' | 'MERGED' | 'CLOSED';
 function GetColorFromPullRequestState(state: PullRequestState): ColorResolvable {
 	switch (state) {
@@ -105,6 +103,8 @@ function GetReviewStateFromReview(state: string): PullRequestState {
 		}
 	}
 }
+
+let octokit: Octokit;
 
 const generateReplyFromInteraction = async (
 	description: string,
@@ -353,6 +353,18 @@ export default {
 				{ name: 'baby', value: '🍼' }
 			)
 		),
+		async initialize()
+		{
+			if(!process.env.GITHUB_TOKEN)
+			{
+				console.warn("Failed to initialize the /docs command: missing GITHUB_TOKEN enviroment variable.")
+				return false;
+			}
+
+			octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+
+			return true;
+		},
 	async execute(interaction: ChatInputCommandInteraction) {
 		const reply = await generateReplyFromInteraction(
 			interaction.options.getString('description', true),

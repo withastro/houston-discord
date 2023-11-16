@@ -24,9 +24,22 @@ const getTagName = async (guild: Guild, fullTagList: GuildForumTag[], id: string
 export default {
 	time: process.env.STATS_SCHEDULE,
 	async execute(client: Client) {
-		const guild = await client.guilds.fetch(process.env.GUILD_ID!);
 
-		const forum: ForumChannel = (await guild.channels.fetch(process.env.SUPPORT_CHANNEL!)) as ForumChannel;
+		if(!process.env.GUILD_ID)
+		{
+			console.warn("No GUILD_ID enviroment variable was set. Skipping weekly statistics");
+			return;
+		}
+
+		const guild = await client.guilds.fetch(process.env.GUILD_ID);
+
+		if(!process.env.SUPPORT_CHANNEL)
+		{
+			console.warn("No SUPPORT_CHANNEL enviroment variable was set. Skipping weekly statistics");
+			return
+		}
+
+		const forum: ForumChannel = (await guild.channels.fetch(process.env.SUPPORT_CHANNEL)) as ForumChannel;
 
 		const date = new Date();
 
@@ -34,7 +47,13 @@ export default {
 
 		const threads = (await forum.threads.fetchActive()).threads.filter((x) => x.createdAt! > date);
 
-		const channel = (await client.channels.fetch(process.env.SUPPORT_SQUAD_CHANNEL!)!) as TextChannel;
+		if(!process.env.SUPPORT_SQUAD_CHANNEL)
+		{
+			console.warn("No SUPPORT_SQUAD_CHANNEL enviroment variable was set. Skipping weekly statistics");
+			return
+		}
+
+		const channel = (await client.channels.fetch(process.env.SUPPORT_SQUAD_CHANNEL)!) as TextChannel;
 
 		const titleEmbed = getDefaultEmbed().setTitle('Weekly support statistics for the last month');
 
@@ -44,24 +63,34 @@ export default {
 		const redirectsEmbed = getDefaultEmbed().setTitle('Support-ai redirects');
 		// Support-ai redirects
 		{
-			let count = 0;
 
-			for (let i = 0; i < threads.size; i++) {
-				const thread = threads.at(i)!;
-				if (thread.members.me) {
-					const msgs = await thread.messages.fetch();
-					msgs.forEach((message) => {
-						if (message.author.id == client.user!.id) count++;
-						return;
-					});
+			if(process.env.SUPPORT_AI_CHANNEL)
+			{
+				let count = 0;
+
+				for (let i = 0; i < threads.size; i++) {
+					const thread = threads.at(i)!;
+					if (thread.members.me) {
+						const msgs = await thread.messages.fetch();
+						msgs.forEach((message) => {
+							if (message.author.id == client.user!.id) count++;
+							return;
+						});
+					}
 				}
+	
+				redirectsEmbed.setDescription(
+					`I sent <#${process.env.SUPPORT_AI_CHANNEL}> redirects in ${count}/${threads.size} support threads`
+				);
+	
+				embeds.push(redirectsEmbed);
+			}
+			else
+			{
+				console.warn("No SUPPORT_SQUAD_CHANNEL enviroment variable was set. Skipping support-ai redirects.");
 			}
 
-			redirectsEmbed.setDescription(
-				`I sent <#${process.env.SUPPORT_AI_CHANNEL!}> redirects in ${count}/${threads.size} support threads`
-			);
-
-			embeds.push(redirectsEmbed);
+		
 		}
 
 		// Tags
