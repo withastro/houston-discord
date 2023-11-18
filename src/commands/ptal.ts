@@ -3,23 +3,16 @@ import { Octokit } from '@octokit/rest';
 import {
 	ActionRowBuilder,
 	ButtonBuilder,
-	ButtonComponent,
-	ButtonInteraction,
-	ButtonStyle,
-	ChatInputCommandInteraction,
-	ColorResolvable,
-	InteractionReplyOptions,
-	InteractionType,
-	MessagePayload,
 	SlashCommandBuilder,
-} from 'discord.js';
+} from '@discordjs/builders';
 import { setTimeout } from 'node:timers/promises';
 import { URL } from 'node:url';
 
 import { getDefaultEmbed } from '../utils/embeds.js';
+import { APIChatInputApplicationCommandInteraction, APIMessageComponentButtonInteraction } from 'discord-api-types/v10';
 
 async function ReplyOrEditReply(
-	interaction: ChatInputCommandInteraction | ButtonInteraction,
+	interaction: APIChatInputApplicationCommandInteraction | APIMessageComponentButtonInteraction,
 	replyOptions: string | InteractionReplyOptions | MessagePayload
 ) {
 	if (interaction instanceof ChatInputCommandInteraction) {

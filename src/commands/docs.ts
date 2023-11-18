@@ -1,11 +1,18 @@
 import algoliasearch, { SearchClient, SearchIndex } from 'algoliasearch';
-import { AutocompleteInteraction, ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { EmbedBuilder, SlashCommandBuilder } from '@discordjs/builders';
 import { decode } from 'html-entities';
-import { categories, SearchHit } from '../types';
+import { categories, Command, SearchHit } from '../types';
 import { getDefaultEmbed } from '../utils/embeds.js';
+import { Env } from '..';
+import { APIChatInputApplicationCommandInteraction, APIApplicationCommandAutocompleteInteraction, Routes } from 'discord-api-types/v10';
+import { getStringOption } from '../utils/discordUtils.js';
+import { createFetchRequester} from "@algolia/requester-fetch"
+import { REST } from '@discordjs/rest';
+import { InteractionResponseFlags, InteractionResponseType } from 'discord-interactions';
 
 let client: SearchClient;
 let index: SearchIndex;
+let rest: REST;
 
 const generateNameFromHit = (hit: SearchHit): string => {
 	return decode(
@@ -27,14 +34,14 @@ const reduce = (string: string, limit: number, delimiter: string | null): string
 	return string;
 };
 
-const returnObjectResult = async (interaction: ChatInputCommandInteraction, object: SearchHit) => {
+const returnObjectResult = async (interaction: APIChatInputApplicationCommandInteraction, object: SearchHit, env: Env) => {
 	const embed = getDefaultEmbed();
 
 	embed.setTitle(decode(generateNameFromHit(object)));
 
 	let description = '';
 
-	const facetFilters: string[][] = [['lang:' + (interaction.options.getString('language') ?? 'en')], ['type:content']];
+	const facetFilters: string[][] = [['lang:' + (getStringOption(interaction.data, 'language') ?? 'en')], ['type:content']];
 
 	let highest = 0;
 
@@ -75,10 +82,15 @@ const returnObjectResult = async (interaction: ChatInputCommandInteraction, obje
 
 	embed.setDescription(description);
 
-	await interaction.editReply({ embeds: [embed] });
+	await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token, "@original"), {
+		body: {
+			type: InteractionResponseType.UPDATE_MESSAGE,
+			embeds: [embed.toJSON()]
+		}
+	})
 };
 
-export default {
+const command: Command = {
 	data: new SlashCommandBuilder()
 		.setName('docs')
 		.setDescription('Search the docs')
@@ -111,34 +123,45 @@ export default {
 					{ name: 'Русский', value: 'ru' }
 				)
 		),
-	initialize() {
-		if (!process.env.ALGOLIA_APP_ID || !process.env.ALGOLIA_API_KEY || !process.env.ALGOLIA_INDEX) {
+	initialize(env: Env) {
+		if (!env.ALGOLIA_APP_ID || !env.ALGOLIA_API_KEY || !env.ALGOLIA_INDEX) {
 			console.warn('Failed to initialize the /docs command: missing algolia enviroment variables.');
 			return false;
 		}
 
-		client = algoliasearch(process.env.ALGOLIA_APP_ID, process.env.ALGOLIA_API_KEY);
-		client.initIndex(process.env.ALGOLIA_INDEX);
+		client = algoliasearch(env.ALGOLIA_APP_ID, env.ALGOLIA_API_KEY, {
+			requester: createFetchRequester()
+		});
+		index = client.initIndex(env.ALGOLIA_INDEX);
+		rest = new REST({version: "10"}).setToken(env.DISCORD_TOKEN);
 
 		return true;
 	},
-	async execute(interaction: ChatInputCommandInteraction) {
-		await interaction.deferReply({ ephemeral: interaction.options.getBoolean('hidden') ?? true });
+	async execute(interaction: APIChatInputApplicationCommandInteraction, env: Env) {
+		//TODO: adhere to hidden
+		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
+			body: {
+				type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
+				data: {
+					flags: InteractionResponseFlags.EPHEMERAL
+				}
+			}
+		})
 
-		if (interaction.options.getString('query')!.startsWith('auto-')) {
-			const reply: SearchHit = await index.getObject(interaction.options.getString('query')!.substring(5));
-			await returnObjectResult(interaction, reply);
+		let query = getStringOption(interaction.data, 'query')!;
+
+		if (query.startsWith('auto-')) {
+			const reply: SearchHit = await index.getObject(query.substring(5));
+			await returnObjectResult(interaction, reply, env);
 			return;
 		}
-
-		let query = interaction.options.getString('query')!;
 
 		if (query.startsWith('user-')) {
 			query = query.substring(5);
 		}
 
 		const reply = await index.search<SearchHit>(query, {
-			facetFilters: [['lang:' + (interaction.options.getString('language') ?? 'en')]],
+			facetFilters: [['lang:' + (getStringOption(interaction.data, 'language') ?? 'en')]],
 			highlightPreTag: '**',
 			highlightPostTag: '**',
 			hitsPerPage: 20,
@@ -254,11 +277,20 @@ export default {
 			embeds[0].setTitle(`No results found for "${query}"`);
 		}
 
-		await interaction.editReply({ embeds: embeds });
+		await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token, "@original"), {
+			body: {
+				type: InteractionResponseType.UPDATE_MESSAGE,
+				embeds: embeds.map(embed => embed.toJSON())
+			}
+		})
+
+		return new Response();
 	},
-	async autocomplete(interaction: AutocompleteInteraction) {
-		const reply = await index.search<SearchHit>(interaction.options.getString('query')!, {
-			facetFilters: [['lang:' + (interaction.options.getString('language') ?? 'en')]],
+	async autocomplete(interaction: APIApplicationCommandAutocompleteInteraction) {
+		const query = getStringOption(interaction.data, 'query')!;
+
+		const reply = await index.search<SearchHit>(query, {
+			facetFilters: [['lang:' + (getStringOption(interaction.data, 'language') ?? 'en')]],
 			hitsPerPage: 20,
 			distinct: true,
 		});
@@ -270,13 +302,24 @@ export default {
 			};
 		});
 
-		if (interaction.options.getString('query')!.trim() != '') {
+		if (query.trim() != '') {
 			hits.unshift({
-				name: `"${interaction.options.getString('query')!}"`,
-				value: `user-${interaction.options.getString('query')!}`,
+				name: `"${query}"`,
+				value: `user-${query}`,
 			});
 		}
 
-		await interaction.respond(hits);
+		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
+			body: {
+				type: InteractionResponseType.APPLICATION_COMMAND_AUTOCOMPLETE_RESULT,
+				data: {
+					choices: hits
+				}
+			}
+		})
+
+		return new Response();
 	},
 };
+
+export default command;
