@@ -10,8 +10,8 @@ if(!process.env.DISCORD_TOKEN || ! process.env.DISCORD_CLIENT_ID)
 	process.exit(1);
 }
 
-import CommandList from "./commands"
-import {REST, } from "@discordjs/rest"
+import CommandList from "./commands/index.js"
+import {REST} from "@discordjs/rest"
 import { Command } from "./types";
 
 const rest: REST = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN)

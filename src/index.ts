@@ -1,8 +1,9 @@
-//import commandList from "./commands";
+import commandList from "./commands/index.js";
 import { Router } from "itty-router";
-import { verifyDiscordRequest } from "./utils/discordUtils";
+import { verifyDiscordRequest } from "./utils/discordUtils.js";
 import {InteractionResponseType} from "discord-interactions"
 import {InteractionType} from "discord-api-types/v10";
+import type {ExecutionContext} from "@cloudflare/workers-types"
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface Env {
@@ -21,10 +22,22 @@ export interface Env {
 	// Example binding to a Queue. Learn more at https://developers.cloudflare.com/queues/javascript-apis/
 	// MY_QUEUE: Queue;
 
-	DISCORD_PUBLIC_KEY: string
+	DISCORD_TOKEN: string,
+	DISCORD_PUBLIC_KEY: string,
+	DISCORD_CLIENT_ID: string,
+	GITHUB_TOKEN?: string,
+	GUILD_ID?: string,
+	SUPPORT_CHANNEL?: string,
+	SUPPORT_AI_CHANNEL?: string,
+	SUPPORT_SQUAD_CHANNEL?: string,
+	STATS_SCHEDULE?: string,
+	SUPPORT_REDIRECT_SCHEDULE?: string,
+	ALGOLIA_INDEX?: string,
+	ALGOLIA_APP_ID?: string,
+	ALGOLIA_API_KEY?: string
 }
 
-class JsonResponse extends Response {
+export class JsonResponse extends Response {
   constructor(body?: any, init?: ResponseInit) {
     const jsonBody = JSON.stringify(body);
     init = init || {
@@ -63,7 +76,7 @@ router.post("/", async (request, env: Env) => {
 
 	if(interaction.type == InteractionType.ApplicationCommand)
 	{
-		// handle command
+		return commandList["ask"].execute(interaction, env);
 	}
 
 	if(interaction.type == InteractionType.ApplicationCommandAutocomplete)

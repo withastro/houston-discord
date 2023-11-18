@@ -3,7 +3,7 @@
 	"private": true,
 	"version": "1.0.0",
 	"description": "",
-	"main": "src/index.ts",
+	"main": "src/register.ts",
 	"type": "module",
 	"scripts": {
 		"start": "wrangler dev",
@@ -13,7 +13,8 @@
 		"format": "pnpm run format:code",
 		"format:ci": "pnpm run format:imports && pnpm run format:code",
 		"format:code": "prettier . -w --cache",
-		"format:imports": "organize-imports-cli ./tsconfig.json"
+		"format:imports": "organize-imports-cli ./tsconfig.json",
+		"register": "tsc -p register.tsconfig.json && node ./dist/register.js --experimental-specifier-resolution=node"
 	},
 	"engines": {
 		"node": ">=18.18.0",
