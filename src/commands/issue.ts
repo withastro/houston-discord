@@ -6,6 +6,7 @@ import {
 import { ButtonStyle, APIChatInputApplicationCommandInteraction, APIApplicationCommandInteractionDataOption, APIApplicationCommandInteractionDataStringOption, ApplicationCommandOptionType, InteractionResponseType, MessageFlags } from 'discord-api-types/v10';
 import { random } from '../utils/helpers.js';
 import { JsonResponse } from '../index.js';
+import { getStringOption } from '../utils/discordUtils.js';
 
 const messages = [
 	`Oh no! We'll get right on this.`,
@@ -44,19 +45,8 @@ export default {
 				)
 		),
 	async execute(interaction: APIChatInputApplicationCommandInteraction) {
-		let repo = "astro";
+		let repo = getStringOption(interaction.data, "repo") ?? "astro";
 
-		if(interaction.data.options)
-		{
-			let option: APIApplicationCommandInteractionDataStringOption | undefined = interaction.data.options.find(option => {
-				return option.name == "repo" && option.type == ApplicationCommandOptionType.String
-			}) as APIApplicationCommandInteractionDataStringOption | undefined
-
-			if(option)
-			{
-				repo = option.value;
-			}
-		}
 		const message = random(messages);
 		const repoURL = new URL(`https://github.com/withastro/${repo}/`);
 		const issueURL = new URL('./issues/new/choose', repoURL);

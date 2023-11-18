@@ -1,6 +1,6 @@
 import { Env } from "..";
 import {verifyKey} from "discord-interactions"
-import {APIBaseInteraction, InteractionType} from "discord-api-types/v10"
+import {APIApplicationCommandInteractionDataStringOption, APIBaseInteraction, APIChatInputApplicationCommandInteractionData, ApplicationCommandOptionType, InteractionType} from "discord-api-types/v10"
 
 export async function verifyDiscordRequest(request: Request, env: Env) {
   const signature = request.headers.get('x-signature-ed25519');
@@ -15,4 +15,16 @@ export async function verifyDiscordRequest(request: Request, env: Env) {
   }
 
   return { interaction: JSON.parse(body) as APIBaseInteraction<InteractionType, any>, isValid: true };
+}
+
+export function getStringOption(data: APIChatInputApplicationCommandInteractionData, name: string)
+{
+	if(!data.options)
+		return undefined;
+
+	let option: APIApplicationCommandInteractionDataStringOption | undefined = data.options.find(option => {
+			return option.name == "repo" && option.type == ApplicationCommandOptionType.String
+		}) as APIApplicationCommandInteractionDataStringOption | undefined;
+
+	return option;
 }
