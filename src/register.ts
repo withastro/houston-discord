@@ -19,9 +19,9 @@ const rest: REST = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKE
 let commands: RESTPostAPIApplicationCommandsJSONBody[] = [];
 for(const commandName in CommandList)
 {
-    const command: Command = CommandList[commandName];
+	const command: Command = CommandList[commandName];
 
-		commands.push(command.data.toJSON());
+	commands.push(command.data.toJSON());
 }
 
 console.log(`Started refreshing ${commands.length} commands.`);
