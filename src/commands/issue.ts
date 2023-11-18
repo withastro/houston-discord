@@ -1,11 +1,11 @@
 import {
 	ActionRowBuilder,
 	ButtonBuilder,
-	ButtonStyle,
-	ChatInputCommandInteraction,
 	SlashCommandBuilder,
-} from 'discord.js';
+} from '@discordjs/builders';
+import { ButtonStyle, APIChatInputApplicationCommandInteraction, APIApplicationCommandInteractionDataOption, APIApplicationCommandInteractionDataStringOption, ApplicationCommandOptionType, InteractionResponseType, MessageFlags } from 'discord-api-types/v10';
 import { random } from '../utils/helpers.js';
+import { JsonResponse } from '../index.js';
 
 const messages = [
 	`Oh no! We'll get right on this.`,
@@ -43,8 +43,20 @@ export default {
 					{ name: 'Prettier', value: 'prettier-plugin-astro' }
 				)
 		),
-	async execute(interaction: ChatInputCommandInteraction) {
-		const repo = interaction.options.getString('repo') ?? 'astro';
+	async execute(interaction: APIChatInputApplicationCommandInteraction) {
+		let repo = "astro";
+
+		if(interaction.data.options)
+		{
+			let option: APIApplicationCommandInteractionDataStringOption | undefined = interaction.data.options.find(option => {
+				return option.name == "repo" && option.type == ApplicationCommandOptionType.String
+			}) as APIApplicationCommandInteractionDataStringOption | undefined
+
+			if(option)
+			{
+				repo = option.value;
+			}
+		}
 		const message = random(messages);
 		const repoURL = new URL(`https://github.com/withastro/${repo}/`);
 		const issueURL = new URL('./issues/new/choose', repoURL);
@@ -57,11 +69,17 @@ export default {
 
 		const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
 
-		interaction.reply({
+		return new JsonResponse({type: InteractionResponseType.ChannelMessageWithSource, data:{
 			content: `${message}\n\nPlease open an issue on the [\`withastro/${repo}\`](${repoURL}) repo.`,
-			flags: 'SuppressEmbeds',
-			components: [buttonRow],
-			ephemeral: false,
-		});
+			flags: MessageFlags.SuppressEmbeds,
+			components: [buttonRow.toJSON()],
+		}})
+
+		// interaction.reply({
+		// 	content: `${message}\n\nPlease open an issue on the [\`withastro/${repo}\`](${repoURL}) repo.`,
+		// 	flags: 'SuppressEmbeds',
+		// 	components: [buttonRow],
+		// 	ephemeral: false,
+		// });
 	},
 };

@@ -2,7 +2,7 @@ import commandList from "./commands/index.js";
 import { Router } from "itty-router";
 import { verifyDiscordRequest } from "./utils/discordUtils.js";
 import {InteractionResponseType} from "discord-interactions"
-import {InteractionType} from "discord-api-types/v10";
+import {APIApplicationCommandInteractionData, APIBaseInteraction, APIChatInputApplicationCommandInteraction, InteractionType} from "discord-api-types/v10";
 import type {ExecutionContext} from "@cloudflare/workers-types"
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -57,12 +57,15 @@ router.get("/", async () => {
 
 router.post("/", async (request, env: Env) => {
 
-	const { isValid, interaction } = await verifyDiscordRequest(
+	let interaction: APIBaseInteraction<InteractionType, any> | APIChatInputApplicationCommandInteraction | undefined;
+	const discordRequestData = await verifyDiscordRequest(
 		request,
 		env
 	);
 
-	if(!isValid || !interaction)
+	interaction = discordRequestData.interaction;
+
+	if(!discordRequestData.isValid || !interaction)
 	{
 		return new Response('Bad request signature.', { status: 401 });
 	}
@@ -76,7 +79,15 @@ router.post("/", async (request, env: Env) => {
 
 	if(interaction.type == InteractionType.ApplicationCommand)
 	{
-		return commandList["ask"].execute(interaction, env);
+		interaction = interaction as APIChatInputApplicationCommandInteraction;
+		const interactionData: APIApplicationCommandInteractionData = interaction.data;
+
+		if(commandList[interactionData.name])
+		{
+			return commandList[interactionData.name].execute(interaction, env);
+		}
+
+		return new Response("Command not found", {status: 404});
 	}
 
 	if(interaction.type == InteractionType.ApplicationCommandAutocomplete)
