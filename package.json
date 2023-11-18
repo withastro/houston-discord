@@ -22,6 +22,7 @@
 	},
 	"packageManager": "pnpm@8.6.12",
 	"dependencies": {
+		"@algolia/requester-fetch": "^4.20.0",
 		"@discordjs/builders": "^1.7.0",
 		"@discordjs/rest": "^2.2.0",
 		"@octokit/request-error": "^5.0.1",

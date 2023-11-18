@@ -2,7 +2,7 @@ import commandList from "./commands/index.js";
 import { Router } from "itty-router";
 import { verifyDiscordRequest } from "./utils/discordUtils.js";
 import {InteractionResponseType} from "discord-interactions"
-import {APIApplicationCommandInteractionData, APIBaseInteraction, APIChatInputApplicationCommandInteraction, InteractionType} from "discord-api-types/v10";
+import {APIApplicationCommandAutocompleteInteraction, APIApplicationCommandInteractionData, APIBaseInteraction, APIChatInputApplicationCommandInteraction, InteractionType} from "discord-api-types/v10";
 import type {ExecutionContext} from "@cloudflare/workers-types"
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -82,9 +82,19 @@ router.post("/", async (request, env: Env) => {
 		interaction = interaction as APIChatInputApplicationCommandInteraction;
 		const interactionData: APIApplicationCommandInteractionData = interaction.data;
 
-		if(commandList[interactionData.name])
+		const command = commandList[interactionData.name];
+
+		if(command)
 		{
-			return commandList[interactionData.name].execute(interaction, env);
+			if(command.initialize)
+			{
+				if(!command.initialize(env))
+				{
+					return new Response("Internal error", {status: 500});
+				}
+			}
+
+			return await command.execute(interaction, env);
 		}
 
 		return new Response("Command not found", {status: 404});
@@ -92,7 +102,27 @@ router.post("/", async (request, env: Env) => {
 
 	if(interaction.type == InteractionType.ApplicationCommandAutocomplete)
 	{
-		// handle command autocomplete
+		interaction = interaction as APIApplicationCommandAutocompleteInteraction;
+		const interactionData: APIApplicationCommandInteractionData = interaction.data;
+
+		const command = commandList[interactionData.name];
+
+		if(command)
+		{
+			if(command.autocomplete)
+			{
+				if(command.initialize)
+				{
+					if(!command.initialize(env))
+					{
+						return new Response("Internal error", {status: 500});
+					}
+				}
+
+				return await command.autocomplete(interaction);
+			}
+		}
+		return new Response("Command not found", {status: 404});
 	}
 
 	return new Response("Yet to implement");

@@ -23,8 +23,8 @@ export function getStringOption(data: APIChatInputApplicationCommandInteractionD
 		return undefined;
 
 	let option: APIApplicationCommandInteractionDataStringOption | undefined = data.options.find(option => {
-			return option.name == "repo" && option.type == ApplicationCommandOptionType.String
+			return option.name == name && option.type == ApplicationCommandOptionType.String
 		}) as APIApplicationCommandInteractionDataStringOption | undefined;
 
-	return option;
+	return option?.value;
 }

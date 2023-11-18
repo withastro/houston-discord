@@ -1,6 +1,6 @@
 import { Command } from "../types";
 import {default as AskCommand} from "./ask.js";
-// import {default as DocsCommand} from "./docs";
+import {default as DocsCommand} from "./docs.js";
 import {default as IssueCommand} from "./issue.js";
 // import {default as PTALCommand} from "./ptal";
 // import {default as RetriggerStatisticsCommand} from "./retriggerStatistics";
@@ -11,7 +11,7 @@ type CommandList = {
 
 const commandList: CommandList = {
 	"ask": AskCommand,
-	//"docs": DocsCommand,
+	"docs": DocsCommand,
 	"issue": IssueCommand,
 	//"ptal": PTALCommand,
 	//"retrigger-statistics": RetriggerStatisticsCommand

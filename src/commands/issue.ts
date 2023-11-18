@@ -59,7 +59,7 @@ export default {
 
 		const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
 
-		return new JsonResponse({type: InteractionResponseType.ChannelMessageWithSource, data:{
+		return new JsonResponse({type: InteractionResponseType.ChannelMessageWithSource, data: {
 			content: `${message}\n\nPlease open an issue on the [\`withastro/${repo}\`](${repoURL}) repo.`,
 			flags: MessageFlags.SuppressEmbeds,
 			components: [buttonRow.toJSON()],
