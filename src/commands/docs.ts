@@ -4,11 +4,11 @@ import { decode } from 'html-entities';
 import { categories, Command, SearchHit } from '../types';
 import { getDefaultEmbed } from '../utils/embeds.js';
 import { Env } from '..';
-import { APIChatInputApplicationCommandInteraction, APIApplicationCommandAutocompleteInteraction, Routes } from 'discord-api-types/v10';
-import { getStringOption } from '../utils/discordUtils.js';
+import { APIChatInputApplicationCommandInteraction, APIApplicationCommandAutocompleteInteraction, Routes, InteractionResponseType } from 'discord-api-types/v10';
+import { getBooleanOption, getStringOption } from '../utils/discordUtils.js';
 import { createFetchRequester} from "@algolia/requester-fetch"
 import { REST } from '@discordjs/rest';
-import { InteractionResponseFlags, InteractionResponseType } from 'discord-interactions';
+import { InteractionResponseFlags } from 'discord-interactions';
 
 let client: SearchClient;
 let index: SearchIndex;
@@ -84,7 +84,7 @@ const returnObjectResult = async (interaction: APIChatInputApplicationCommandInt
 
 	await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token, "@original"), {
 		body: {
-			type: InteractionResponseType.UPDATE_MESSAGE,
+			type: InteractionResponseType.UpdateMessage,
 			embeds: [embed.toJSON()]
 		}
 	})
@@ -138,12 +138,12 @@ const command: Command = {
 		return true;
 	},
 	async execute(interaction: APIChatInputApplicationCommandInteraction, env: Env) {
-		//TODO: adhere to hidden
+
 		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
 			body: {
-				type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
+				type: InteractionResponseType.DeferredChannelMessageWithSource,
 				data: {
-					flags: InteractionResponseFlags.EPHEMERAL
+					flags: (getBooleanOption(interaction.data, "hidden") != false)? InteractionResponseFlags.EPHEMERAL : 0
 				}
 			}
 		})
@@ -279,7 +279,7 @@ const command: Command = {
 
 		await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token, "@original"), {
 			body: {
-				type: InteractionResponseType.UPDATE_MESSAGE,
+				type: InteractionResponseType.UpdateMessage,
 				embeds: embeds.map(embed => embed.toJSON())
 			}
 		})
@@ -311,7 +311,7 @@ const command: Command = {
 
 		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
 			body: {
-				type: InteractionResponseType.APPLICATION_COMMAND_AUTOCOMPLETE_RESULT,
+				type: InteractionResponseType.ApplicationCommandAutocompleteResult,
 				data: {
 					choices: hits
 				}
