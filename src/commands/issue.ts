@@ -3,9 +3,11 @@ import {
 	ButtonBuilder,
 	SlashCommandBuilder,
 } from '@discordjs/builders';
-import { ButtonStyle, APIChatInputApplicationCommandInteraction, APIApplicationCommandInteractionDataOption, APIApplicationCommandInteractionDataStringOption, ApplicationCommandOptionType, InteractionResponseType, MessageFlags } from 'discord-api-types/v10';
+import { ButtonStyle, APIChatInputApplicationCommandInteraction, APIApplicationCommandInteractionDataOption, APIApplicationCommandInteractionDataStringOption, ApplicationCommandOptionType, InteractionResponseType, MessageFlags, Routes } from 'discord-api-types/v10';
 import { random } from '../utils/helpers.js';
 import { getStringOption } from '../utils/discordUtils.js';
+import { Env } from '../index.js';
+import { REST } from '@discordjs/rest';
 
 const messages = [
 	`Oh no! We'll get right on this.`,
@@ -43,7 +45,7 @@ export default {
 					{ name: 'Prettier', value: 'prettier-plugin-astro' }
 				)
 		),
-	async execute(interaction: APIChatInputApplicationCommandInteraction) {
+	async execute(interaction: APIChatInputApplicationCommandInteraction, env: Env) {
 		let repo = getStringOption(interaction.data, "repo") ?? "astro";
 
 		const message = random(messages);
@@ -58,10 +60,19 @@ export default {
 
 		const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
 
-		return new Response(JSON.stringify({type: InteractionResponseType.ChannelMessageWithSource, data: {
-			content: `${message}\n\nPlease open an issue on the [\`withastro/${repo}\`](${repoURL}) repo.`,
-			flags: MessageFlags.SuppressEmbeds,
-			components: [buttonRow.toJSON()],
-		}}))
+		const rest = new REST({ version: '10' }).setToken(env.DISCORD_TOKEN);
+
+		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
+			body: {
+				type: InteractionResponseType.ChannelMessageWithSource,
+				data: {
+					content: `${message}\n\nPlease open an issue on the [\`withastro/${repo}\`](${repoURL}) repo.`,
+					flags: MessageFlags.SuppressEmbeds,
+					components: [buttonRow.toJSON()]
+				}
+			}
+		})
+
+		return new Response()
 	},
 };
