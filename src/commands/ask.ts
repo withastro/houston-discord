@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { APIChatInputApplicationCommandInteraction, InteractionResponseType, Routes } from 'discord-api-types/v10';
 import { getDefaultEmbed } from '../utils/embeds.js';
-import { Env, JsonResponse } from '../index.js';
+import { Env } from '../index.js';
 import { REST } from '@discordjs/rest';
 import { Command } from '../types';
 
@@ -19,11 +19,9 @@ const command: Command = {
 				"Hey, I'm not sure how to answer your question. Here's some basic info that can help you provide the info we need to help you!\n\nhttps://hackmd.io/w9Sdod7HQTWYaZsaAcW44g"
 			);
 
-		return new JsonResponse({type: InteractionResponseType.ChannelMessageWithSource, data:{
+		return new Response(JSON.stringify({type: InteractionResponseType.ChannelMessageWithSource, data:{
 			embeds: [embed.toJSON()]
-		}})
-
-		//interaction.reply({ embeds: [embed], ephemeral: false });
+		}}))
 	},
 };
 

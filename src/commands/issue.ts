@@ -5,7 +5,6 @@ import {
 } from '@discordjs/builders';
 import { ButtonStyle, APIChatInputApplicationCommandInteraction, APIApplicationCommandInteractionDataOption, APIApplicationCommandInteractionDataStringOption, ApplicationCommandOptionType, InteractionResponseType, MessageFlags } from 'discord-api-types/v10';
 import { random } from '../utils/helpers.js';
-import { JsonResponse } from '../index.js';
 import { getStringOption } from '../utils/discordUtils.js';
 
 const messages = [
@@ -59,17 +58,10 @@ export default {
 
 		const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
 
-		return new JsonResponse({type: InteractionResponseType.ChannelMessageWithSource, data: {
+		return new Response(JSON.stringify({type: InteractionResponseType.ChannelMessageWithSource, data: {
 			content: `${message}\n\nPlease open an issue on the [\`withastro/${repo}\`](${repoURL}) repo.`,
 			flags: MessageFlags.SuppressEmbeds,
 			components: [buttonRow.toJSON()],
-		}})
-
-		// interaction.reply({
-		// 	content: `${message}\n\nPlease open an issue on the [\`withastro/${repo}\`](${repoURL}) repo.`,
-		// 	flags: 'SuppressEmbeds',
-		// 	components: [buttonRow],
-		// 	ephemeral: false,
-		// });
+		}}))
 	},
 };

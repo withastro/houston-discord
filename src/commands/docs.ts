@@ -317,6 +317,8 @@ const command: Command = {
 				}
 			}
 		})
+
+		return new Response();
 	},
 };
 

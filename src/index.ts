@@ -37,18 +37,6 @@ export interface Env {
 	ALGOLIA_API_KEY?: string
 }
 
-export class JsonResponse extends Response {
-  constructor(body?: any, init?: ResponseInit) {
-    const jsonBody = JSON.stringify(body);
-    init = init || {
-      headers: {
-        'content-type': 'application/json;charset=UTF-8',
-      },
-    };
-    super(jsonBody, init);
-  }
-}
-
 const router = Router();
 
 router.get("/", async () => {
@@ -72,9 +60,7 @@ router.post("/", async (request, env: Env) => {
 
 	if(interaction.type == InteractionType.Ping)
 	{
-		return new JsonResponse({
-      type: InteractionResponseType.PONG,
-    });
+		return new Response(JSON.stringify({type: InteractionResponseType.PONG}))
 	}
 
 	if(interaction.type == InteractionType.ApplicationCommand)
