@@ -14,7 +14,7 @@
 		"format:ci": "pnpm run format:imports && pnpm run format:code",
 		"format:code": "prettier . -w --cache",
 		"format:imports": "organize-imports-cli ./tsconfig.json",
-		"register": "tsc -p register.tsconfig.json && node ./dist/register.js --experimental-specifier-resolution=node"
+		"register": "tsc -p register.tsconfig.json && node ./dist/register.js"
 	},
 	"engines": {
 		"node": ">=18.18.0",

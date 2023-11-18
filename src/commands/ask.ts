@@ -3,7 +3,7 @@ import { APIChatInputApplicationCommandInteraction, InteractionResponseType, Rou
 import { getDefaultEmbed } from '../utils/embeds.js';
 import { Env, JsonResponse } from '../index.js';
 import { REST } from '@discordjs/rest';
-import { Command } from '../types.js';
+import { Command } from '../types';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
