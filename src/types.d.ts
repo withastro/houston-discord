@@ -1,8 +1,8 @@
 import discordjs, { Collection, Interaction, SlashCommandBuilder } from "discord.js"
 
 declare interface Command {
-	data: SlashCommandBuilder,
-	initialize?(): boolean,
+	data: Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">,
+	initialize?(): boolean | Promise<boolean>,
 	execute(interaction: Interaction),
 	autocomplete?(interaction: Interaction),
 	button?(interaction: Interaction)
