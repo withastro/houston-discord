@@ -67,25 +67,25 @@ async function GetEmojiFromURL(url: URL, interaction: APIChatInputApplicationCom
 	if (emoji) {
 		return {name: emoji.name!, id: emoji.id!, animated: emoji.animated!};
 	} else {
-		return {name: "question"};
+		return {name: "❓", animated: false, id: undefined};
 	}
 }
 
 type PullRequestState = 'PENDING' | 'REVIEWED' | 'CHANGES_REQUESTED' | 'APPROVED' | 'MERGED' | 'CLOSED';
-function GetColorFromPullRequestState(state: PullRequestState): string {
+// values copied from https://github.com/discordjs/discord.js/blob/main/packages/discord.js/src/util/Colors.js
+function GetColorFromPullRequestState(state: PullRequestState): number {
 	switch (state) {
 		case 'PENDING':
-			return 'Blue';
+			return 0x3498db;
 		case 'REVIEWED':
-			return 'Gold';
+			return 0xf1c40f;
 		case 'CHANGES_REQUESTED':
-			return 'Red';
+			return 0xed4245;
 		case 'APPROVED':
-			return 'Green';
+			return 0x57f287;
 		case 'MERGED':
-			return 'Grey';
 		case 'CLOSED':
-			return 'Grey';
+			return 0x95a5a6;
 	}
 }
 
@@ -182,7 +182,7 @@ const generateReplyFromInteraction = async (
 		embed.setURL(url);
 
 		let githubLink = new ButtonBuilder()
-			//.setEmoji(await GetEmojiFromURL(new URL(url), interaction, env))
+			.setEmoji(await GetEmojiFromURL(new URL(url), interaction, env))
 			.setLabel('View on Github')
 			.setStyle(ButtonStyle.Link)
 			.setURL(url);
@@ -275,8 +275,7 @@ const generateReplyFromInteraction = async (
 					}
 				}
 			}
-			//TODO: convert to correct values
-			//embed.setColor(GetColorFromPullRequestState(pr_state));
+			embed.setColor(GetColorFromPullRequestState(pr_state));
 			embed.addFields({ name: 'Status', value: GetHumanStatusFromPullRequestState(pr_state), inline: true });
 
 			const { data: files } = await octokit.rest.pulls.listFiles(pr_info);
@@ -302,7 +301,7 @@ const generateReplyFromInteraction = async (
 		let deployment = await TryParseURL(deploymentOption, interaction, env);
 		if (deployment) {
 			let deploymentLink = new ButtonBuilder()
-				//.setEmoji(await GetEmojiFromURL(deployment, interaction, env))
+				.setEmoji(await GetEmojiFromURL(deployment, interaction, env))
 				.setLabel('View as Preview')
 				.setStyle(ButtonStyle.Link)
 				.setURL(deployment.href);
@@ -346,7 +345,7 @@ const generateReplyFromInteraction = async (
 			.setCustomId(`ptal-refresh`)
 			.setLabel('Refresh')
 			.setStyle(ButtonStyle.Primary)
-		//	.setEmoji({name: "repeat"});
+			.setEmoji({name: "🔁", animated: false, id: undefined});
 
 		components.push(refreshButton);
 	}
