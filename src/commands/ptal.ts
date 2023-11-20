@@ -1,12 +1,19 @@
 import { RequestError } from '@octokit/request-error';
 import { Octokit } from '@octokit/rest';
-import {
-	ActionRowBuilder,
-	ButtonBuilder,
-	SlashCommandBuilder,
-} from '@discordjs/builders';
+import { ActionRowBuilder, ButtonBuilder, SlashCommandBuilder } from '@discordjs/builders';
 import { getDefaultEmbed } from '../utils/embeds.js';
-import { APIButtonComponent, APIButtonComponentWithURL, APIChatInputApplicationCommandInteraction, APIGuild, APIMessageComponentButtonInteraction, APIMessageComponentEmoji, ButtonStyle, InteractionResponseType, InteractionType, Routes } from 'discord-api-types/v10';
+import {
+	APIButtonComponent,
+	APIButtonComponentWithURL,
+	APIChatInputApplicationCommandInteraction,
+	APIGuild,
+	APIMessageComponentButtonInteraction,
+	APIMessageComponentEmoji,
+	ButtonStyle,
+	InteractionResponseType,
+	InteractionType,
+	Routes,
+} from 'discord-api-types/v10';
 import { getStringOption } from '../utils/discordUtils.js';
 import { REST } from '@discordjs/rest';
 import { Env } from '../index.js';
@@ -14,9 +21,7 @@ import { InteractionResponseFlags } from 'discord-interactions';
 
 let rest: REST;
 
-type InteractionReplyOptions = {
-
-}
+type InteractionReplyOptions = {};
 
 async function ReplyOrEditReply(
 	interaction: APIChatInputApplicationCommandInteraction | APIMessageComponentButtonInteraction,
@@ -24,27 +29,30 @@ async function ReplyOrEditReply(
 	env: Env
 ) {
 	if (interaction.type == InteractionType.ApplicationCommand) {
-
 		await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token), {
 			body: {
-				...replyOptions
-			}
-		})
+				...replyOptions,
+			},
+		});
 
 		setTimeout(async () => {
-			await rest.delete(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token))
+			await rest.delete(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token));
 		}, 5000);
 	} else {
 		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
 			body: {
 				type: InteractionResponseType.ChannelMessageWithSource,
-				...replyOptions
-			}
-		})
+				...replyOptions,
+			},
+		});
 	}
 }
 
-async function TryParseURL(url: string, interaction: APIChatInputApplicationCommandInteraction | APIMessageComponentButtonInteraction, env: Env) {
+async function TryParseURL(
+	url: string,
+	interaction: APIChatInputApplicationCommandInteraction | APIMessageComponentButtonInteraction,
+	env: Env
+) {
 	try {
 		return new URL(url.trim());
 	} catch (exception) {
@@ -57,17 +65,21 @@ async function TryParseURL(url: string, interaction: APIChatInputApplicationComm
 	}
 }
 
-async function GetEmojiFromURL(url: URL, interaction: APIChatInputApplicationCommandInteraction | APIMessageComponentButtonInteraction, env: Env): Promise<APIMessageComponentEmoji> {
+async function GetEmojiFromURL(
+	url: URL,
+	interaction: APIChatInputApplicationCommandInteraction | APIMessageComponentButtonInteraction,
+	env: Env
+): Promise<APIMessageComponentEmoji> {
 	let apexDomain = url.hostname.split('.').at(-2);
 
-	let guild = await rest.get(Routes.guild(env.GUILD_ID!)) as APIGuild;
+	let guild = (await rest.get(Routes.guild(env.GUILD_ID!))) as APIGuild;
 
-	let emoji = guild.emojis.find(emoji => emoji.name == apexDomain);
+	let emoji = guild.emojis.find((emoji) => emoji.name == apexDomain);
 
 	if (emoji) {
-		return {name: emoji.name!, id: emoji.id!, animated: emoji.animated!};
+		return { name: emoji.name!, id: emoji.id!, animated: emoji.animated! };
 	} else {
-		return {name: "❓", animated: false, id: undefined};
+		return { name: '❓', animated: false, id: undefined };
 	}
 }
 
@@ -130,7 +142,7 @@ const generateReplyFromInteraction = async (
 	env: Env,
 	deployment?: string,
 	other?: string,
-	emoji?: string,
+	emoji?: string
 ): Promise<any> => {
 	if (emoji) {
 		emoji = emoji.trim();
@@ -161,10 +173,10 @@ const generateReplyFromInteraction = async (
 					type: InteractionResponseType.ChannelMessageWithSource,
 					data: {
 						content: "The github PR entered wasn't in a supported format",
-						flags: InteractionResponseFlags.EPHEMERAL
-					}
-				}
-			})
+						flags: InteractionResponseFlags.EPHEMERAL,
+					},
+				},
+			});
 			return null;
 		}
 
@@ -177,25 +189,16 @@ const generateReplyFromInteraction = async (
 		};
 
 		let url = `https://github.com/${pr_info.owner}/${pr_info.repo}/pull/${pr_info.pull_number}`;
-
 		embed.addFields({ name: 'Repository', value: `[${pr_info.owner}/${pr_info.repo}#${pr_info.pull_number}](${url})` });
 		embed.setURL(url);
 
 		let githubLink = new ButtonBuilder()
-			.setEmoji(await GetEmojiFromURL(new URL(url), interaction, env))
+			// .setEmoji(await GetEmojiFromURL(new URL(url), interaction, env))
+			.setEmoji({ name: '🔁', animated: false, id: undefined })
 			.setLabel('View on Github')
 			.setStyle(ButtonStyle.Link)
 			.setURL(url);
-
 		components.push(githubLink);
-
-		if (interaction.type == InteractionType.ApplicationCommand) {
-			await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
-				body: {
-					type: InteractionResponseType.DeferredChannelMessageWithSource
-				}
-			})
-		}
 
 		try {
 			let pr = await octokit.rest.pulls.get(pr_info);
@@ -289,10 +292,14 @@ const generateReplyFromInteraction = async (
 			if (error instanceof RequestError && error.status != 404) {
 				console.error(error);
 			}
-			await ReplyOrEditReply(interaction, {
-				content:
-					'Something went wrong when parsing your pull request. Are you sure that the pull request you submitted exists?',
-			}, env);
+			await ReplyOrEditReply(
+				interaction,
+				{
+					content:
+						'Something went wrong when parsing your pull request. Are you sure that the pull request you submitted exists?',
+				},
+				env
+			);
 			return null;
 		}
 	}
@@ -301,7 +308,8 @@ const generateReplyFromInteraction = async (
 		let deployment = await TryParseURL(deploymentOption, interaction, env);
 		if (deployment) {
 			let deploymentLink = new ButtonBuilder()
-				.setEmoji(await GetEmojiFromURL(deployment, interaction, env))
+				// .setEmoji(await GetEmojiFromURL(deployment, interaction, env))
+				.setEmoji({ name: '🔁', animated: false, id: undefined })
 				.setLabel('View as Preview')
 				.setStyle(ButtonStyle.Link)
 				.setURL(deployment.href);
@@ -345,14 +353,13 @@ const generateReplyFromInteraction = async (
 			.setCustomId(`ptal-refresh`)
 			.setLabel('Refresh')
 			.setStyle(ButtonStyle.Primary)
-			.setEmoji({name: "🔁", animated: false, id: undefined});
+			.setEmoji({ name: '🔁', animated: false, id: undefined });
 
 		components.push(refreshButton);
 	}
 
 	let actionRow = new ActionRowBuilder<ButtonBuilder>();
 	actionRow.addComponents(...components);
-
 	return {
 		content: `${emoji != ' ' && emoji != null ? `${emoji} ` : ''}**PTAL** ${description}`,
 		embeds: [embed.toJSON()],
@@ -384,107 +391,128 @@ export default {
 			)
 		),
 	async initialize(env: Env) {
+		console.log('INITIALIZE');
 		if (!env.GITHUB_TOKEN) {
 			console.warn('Failed to initialize the /docs command: missing GITHUB_TOKEN enviroment variable.');
 			return false;
 		}
 
 		octokit = new Octokit({ auth: env.GITHUB_TOKEN });
-		rest = new REST({version: "10"}).setToken(env.DISCORD_TOKEN)
+		rest = new REST({ version: '10' }).setToken(env.DISCORD_TOKEN);
 
 		return true;
 	},
-	async execute(interaction: APIChatInputApplicationCommandInteraction, env: Env) {
-		const reply = await generateReplyFromInteraction(
-			getStringOption(interaction.data, 'description')!,
-			getStringOption(interaction.data, 'github')!,
-			interaction,
-			env,
-			getStringOption(interaction.data, 'deployment'),
-			getStringOption(interaction.data, 'other'),
-			getStringOption(interaction.data, 'type'),
-		);
+	async execute(interaction: APIChatInputApplicationCommandInteraction, env: Env, ctx: ExecutionContext) {
+		console.log('EXECUTE');
+		// this is called on ApplicationCommand, so it uses deferredChannelMessageWithSource
+		// and needs waitUntil
+		ctx.waitUntil(
+			new Promise(async (resolve) => {
+				console.log('WAIT UNTIL');
+				const reply = await generateReplyFromInteraction(
+					getStringOption(interaction.data, 'description')!,
+					getStringOption(interaction.data, 'github')!,
+					interaction,
+					env,
+					getStringOption(interaction.data, 'deployment'),
+					getStringOption(interaction.data, 'other'),
+					getStringOption(interaction.data, 'type')
+				);
+				console.log('DEBUG REPLY');
+				console.log(reply);
+				if (!reply) resolve(false);
 
-		if (!reply) return;
-
-		await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token, "@original"), {
-			body: {
-				type: InteractionResponseType.UpdateMessage,
-				...reply
-			}
-		})
-	},
-	async button(interaction: APIMessageComponentButtonInteraction, env: Env) {
-		let parts = interaction.data.custom_id.split('-');
-
-		if (parts[1] == 'refresh') {
-			let descriptionArray = interaction.message.content.split(' ');
-
-			let emoji = null;
-			if (descriptionArray[0] != '**PTAL**') {
-				emoji = descriptionArray[0];
-				descriptionArray.shift();
-			}
-
-			descriptionArray.shift();
-			let description = descriptionArray.join(' ');
-
-			const githubButton = interaction.message.components![0].components[0] as APIButtonComponentWithURL;
-			let otherButton = interaction.message.components![0].components[1] as APIButtonComponent;
-			let other: string | undefined = undefined;
-			if(otherButton.style == ButtonStyle.Link)
-			{
-				other = otherButton.url;
-			}
-
-			let urls: string[] = [];
-
-			let desc = interaction.message.embeds[0].description;
-
-			let lines = desc?.split('\n')!;
-			for (let i = lines?.length - 1; i >= 0; i--) {
-				const line = lines[i].trim();
-				let words = line.split(' ');
-				if (words.at(-1)?.startsWith('<http')) {
-					urls.unshift(words.at(-1)!.substring(1, words.at(-1)!.length - 1));
-				} else {
-					break;
-				}
-			}
-
-			await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
-				body: {
-					type: InteractionResponseType.DeferredMessageUpdate,
-				}
+				await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token, '@original'), {
+					body: {
+						type: InteractionResponseType.UpdateMessage,
+						...reply,
+					},
+				});
+				resolve(true);
 			})
+		);
+		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
+			body: {
+				type: InteractionResponseType.DeferredChannelMessageWithSource,
+			},
+		});
+		return new Response();
+	},
+	async button(interaction: APIMessageComponentButtonInteraction, env: Env, ctx: ExecutionContext) {
+		ctx.waitUntil(
+			new Promise(async (resolve) => {
+				let parts = interaction.data.custom_id.split('-');
 
-			const reply = await generateReplyFromInteraction(
-				description,
-				githubButton.url,
-				interaction,
-				env,
-				other,
-				urls.join(','),
-				emoji? emoji : undefined
-			);
-			if (!reply) return;
+				if (parts[1] == 'refresh') {
+					let descriptionArray = interaction.message.content.split(' ');
 
-			try {
-				await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token), {
-					body: {
-						content: reply.content,
-						embeds: reply.embeds,
-						components: reply.components
+					let emoji = null;
+					if (descriptionArray[0] != '**PTAL**') {
+						emoji = descriptionArray[0];
+						descriptionArray.shift();
 					}
-				})
-			} catch (exception) {
-				console.error(exception);
-				await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token), {
-					body: {
-						content: 'Something went wrong while updating your /ptal request!'
+
+					descriptionArray.shift();
+					let description = descriptionArray.join(' ');
+
+					const githubButton = interaction.message.components![0].components[0] as APIButtonComponentWithURL;
+					let otherButton = interaction.message.components![0].components[1] as APIButtonComponent;
+					let other: string | undefined = undefined;
+					if (otherButton.style == ButtonStyle.Link) {
+						other = otherButton.url;
 					}
-				})
-			}
-		}
+
+					let urls: string[] = [];
+
+					let desc = interaction.message.embeds[0].description;
+
+					let lines = desc?.split('\n')!;
+					for (let i = lines?.length - 1; i >= 0; i--) {
+						const line = lines[i].trim();
+						let words = line.split(' ');
+						if (words.at(-1)?.startsWith('<http')) {
+							urls.unshift(words.at(-1)!.substring(1, words.at(-1)!.length - 1));
+						} else {
+							break;
+						}
+					}
+
+					const reply = await generateReplyFromInteraction(
+						description,
+						githubButton.url,
+						interaction,
+						env,
+						other,
+						urls.join(','),
+						emoji ? emoji : undefined
+					);
+					if (!reply) return;
+
+					try {
+						await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token), {
+							body: {
+								content: reply.content,
+								embeds: reply.embeds,
+								components: reply.components,
+							},
+						});
+					} catch (exception) {
+						console.error(exception);
+						await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token), {
+							body: {
+								content: 'Something went wrong while updating your /ptal request!',
+							},
+						});
+					}
+				}
+				resolve(true);
+			})
+		);
+		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
+			body: {
+				type: InteractionResponseType.DeferredMessageUpdate,
+			},
+		});
+		return new Response();
 	},
 };

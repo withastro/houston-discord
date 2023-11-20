@@ -5,9 +5,9 @@ import { APIBaseInteraction, InteractionType } from "discord-api-types/v10"
 declare interface Command {
 	data: Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">,
 	initialize?(env?: Env): boolean | Promise<boolean>,
-	execute(interaction: APIBaseInteraction<InteractionType, any>, env: Env): JsonResponse | any,
+	execute(interaction: APIBaseInteraction<InteractionType, any>, env: Env, ctx: ExecutionContext): JsonResponse | any,
 	autocomplete?(interaction: APIBaseInteraction<InteractionType, any>),
-	button?(interaction: APIBaseInteraction<InteractionType, any>, env: Env)
+	button?(interaction: APIBaseInteraction<InteractionType, any>, env: Env, ctx: ExecutionContext)
 }
 
 declare interface Event {
