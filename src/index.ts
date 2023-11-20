@@ -2,7 +2,7 @@ import commandList from "./commands/index.js";
 import { Router } from "itty-router";
 import { verifyDiscordRequest } from "./utils/discordUtils.js";
 import {InteractionResponseType} from "discord-interactions"
-import {APIApplicationCommandAutocompleteInteraction, APIApplicationCommandInteractionData, APIBaseInteraction, APIChatInputApplicationCommandInteraction, InteractionType} from "discord-api-types/v10";
+import {APIApplicationCommandAutocompleteInteraction, APIApplicationCommandInteractionData, APIBaseInteraction, APIChatInputApplicationCommandInteraction, APIMessageComponentBaseInteractionData, APIMessageComponentButtonInteraction, InteractionType} from "discord-api-types/v10";
 import type {ExecutionContext} from "@cloudflare/workers-types"
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -109,6 +109,30 @@ router.post("/", async (request, env: Env) => {
 			}
 		}
 		return new Response("Command not found", {status: 404});
+	}
+
+	if(interaction.type == InteractionType.MessageComponent)
+	{
+		interaction = interaction as APIMessageComponentButtonInteraction;
+		const interactionData: APIMessageComponentBaseInteractionData<any> = interaction.data;
+		
+		const command = commandList[interactionData.custom_id.split('-')[0]];
+
+		if(command)
+		{
+			if(command.button)
+			{
+				if(command.initialize)
+				{
+					if(!command.initialize(env))
+					{
+						return new Response("Internal error", {status: 500});
+					}
+				}
+
+				return await command.button(interaction, env);
+			}
+		}
 	}
 
 	return new Response("Yet to implement");
