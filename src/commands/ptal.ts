@@ -193,8 +193,7 @@ const generateReplyFromInteraction = async (
 		embed.setURL(url);
 
 		let githubLink = new ButtonBuilder()
-			// .setEmoji(await GetEmojiFromURL(new URL(url), interaction, env))
-			.setEmoji({ name: '🔁', animated: false, id: undefined })
+			.setEmoji(await GetEmojiFromURL(new URL(url), interaction, env))
 			.setLabel('View on Github')
 			.setStyle(ButtonStyle.Link)
 			.setURL(url);
@@ -308,8 +307,7 @@ const generateReplyFromInteraction = async (
 		let deployment = await TryParseURL(deploymentOption, interaction, env);
 		if (deployment) {
 			let deploymentLink = new ButtonBuilder()
-				// .setEmoji(await GetEmojiFromURL(deployment, interaction, env))
-				.setEmoji({ name: '🔁', animated: false, id: undefined })
+				.setEmoji(await GetEmojiFromURL(deployment, interaction, env))
 				.setLabel('View as Preview')
 				.setStyle(ButtonStyle.Link)
 				.setURL(deployment.href);
@@ -431,6 +429,7 @@ export default {
 				resolve(true);
 			})
 		);
+
 		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
 			body: {
 				type: InteractionResponseType.DeferredChannelMessageWithSource,
