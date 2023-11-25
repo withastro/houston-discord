@@ -336,7 +336,7 @@ const generateReplyFromInteraction = async (
 			break;
 		}
 
-		content += `${GetEmojiFromURL(urlObject, interaction, env)} `;
+		content += `${await GetEmojiFromURL(urlObject, interaction, env)} `;
 		content += `<${urlObject.href}>\n`;
 	}
 
