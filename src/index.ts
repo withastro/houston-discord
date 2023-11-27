@@ -12,6 +12,7 @@ import {
 	InteractionType,
 } from 'discord-api-types/v10';
 import type { ExecutionContext } from '@cloudflare/workers-types';
+import { InteractionClient } from './discordClient.js';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface Env {
@@ -78,7 +79,7 @@ router.post('/', async (request, env: Env, ctx: ExecutionContext) => {
 				}
 			}
 
-			return await command.execute(interaction, env, ctx);
+			return await command.execute(new InteractionClient(interaction, env, ctx));
 		}
 
 		return new Response('Command not found', { status: 404 });
@@ -98,7 +99,7 @@ router.post('/', async (request, env: Env, ctx: ExecutionContext) => {
 					}
 				}
 
-				return await command.autocomplete(interaction);
+				return await command.autocomplete(new InteractionClient(interaction, env, ctx));
 			}
 		}
 		return new Response('Command not found', { status: 404 });
@@ -118,12 +119,12 @@ router.post('/', async (request, env: Env, ctx: ExecutionContext) => {
 					}
 				}
 
-				return await command.button(interaction, env, ctx);
+				return await command.button(new InteractionClient(interaction, env, ctx));
 			}
 		}
 	}
 
-	return new Response('Yet to implement');
+	return new Response("Not found", {status: 404});
 });
 
 export default {

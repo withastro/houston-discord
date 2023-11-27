@@ -7,7 +7,7 @@ import { ButtonStyle, APIChatInputApplicationCommandInteraction, APIApplicationC
 import { random } from '../utils/helpers.js';
 import { getStringOption } from '../utils/discordUtils.js';
 import { Env } from '../index.js';
-import { REST } from '@discordjs/rest';
+import { Command } from '../types.js';
 
 const messages = [
 	`Oh no! We'll get right on this.`,
@@ -27,7 +27,7 @@ const messages = [
 	`Let's get this fixed.`,
 ];
 
-export default {
+const command: Command = {
 	data: new SlashCommandBuilder()
 		.setName('issue')
 		.setDescription('Suggest opening an issue on one of our repositories')
@@ -45,8 +45,8 @@ export default {
 					{ name: 'Prettier', value: 'prettier-plugin-astro' }
 				)
 		),
-	async execute(interaction: APIChatInputApplicationCommandInteraction, env: Env) {
-		let repo = getStringOption(interaction.data, "repo") ?? "astro";
+	async execute(client) {
+		let repo = getStringOption(client.interaction.data, "repo") ?? "astro";
 
 		const message = random(messages);
 		const repoURL = new URL(`https://github.com/withastro/${repo}/`);
@@ -60,19 +60,12 @@ export default {
 
 		const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
 
-		const rest = new REST({ version: '10' }).setToken(env.DISCORD_TOKEN);
-
-		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
-			body: {
-				type: InteractionResponseType.ChannelMessageWithSource,
-				data: {
-					content: `${message}\n\nPlease open an issue on the [\`withastro/${repo}\`](${repoURL}) repo.`,
-					flags: MessageFlags.SuppressEmbeds,
-					components: [buttonRow.toJSON()]
-				}
-			}
+		return client.reply({
+			content: `${message}\n\nPlease open an issue on the [\`withastro/${repo}\`](${repoURL}) repo.`,
+			flags: MessageFlags.SuppressEmbeds,
+			components: [buttonRow.toJSON()]
 		})
-
-		return new Response()
 	},
 };
+
+export default command;

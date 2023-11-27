@@ -18,6 +18,7 @@ import { getStringOption } from '../utils/discordUtils.js';
 import { REST } from '@discordjs/rest';
 import { Env } from '../index.js';
 import { InteractionResponseFlags } from 'discord-interactions';
+import { Command } from '../types.js';
 
 let rest: REST;
 
@@ -159,6 +160,28 @@ const generateReplyFromInteraction = async (
 
 	let content = '';
 	let pr_state: PullRequestState = 'PENDING';
+
+	if (deploymentOption) {
+		let deployment = await TryParseURL(deploymentOption, interaction, env);
+		if (deployment) {
+			let deploymentLink = new ButtonBuilder()
+				.setEmoji(await GetEmojiFromURL(deployment, interaction, env))
+				.setLabel('View as Preview')
+				.setStyle(ButtonStyle.Link)
+				.setURL(deployment.href);
+
+			components.push(deploymentLink);
+		} else return null;
+	}
+	if (otherOption) {
+		urls.push(...otherOption.split(','));
+	}
+	const verb = isUpdate ? 'Updated' : 'Requested';
+	embed.setFooter({
+		text: `${verb} by @${interaction.member?.user.username}`,
+		iconURL: `https://cdn.discordapp.com/avatars/${interaction.member?.user.id}/${interaction.member?.user.avatar}.png`,
+	});
+	embed.setTimestamp(new Date());
 
 	//github
 	{
@@ -303,28 +326,6 @@ const generateReplyFromInteraction = async (
 		}
 	}
 
-	if (deploymentOption) {
-		let deployment = await TryParseURL(deploymentOption, interaction, env);
-		if (deployment) {
-			let deploymentLink = new ButtonBuilder()
-				.setEmoji(await GetEmojiFromURL(deployment, interaction, env))
-				.setLabel('View as Preview')
-				.setStyle(ButtonStyle.Link)
-				.setURL(deployment.href);
-
-			components.push(deploymentLink);
-		} else return null;
-	}
-	if (otherOption) {
-		urls.push(...otherOption.split(','));
-	}
-	const verb = isUpdate ? 'Updated' : 'Requested';
-	embed.setFooter({
-		text: `${verb} by @${interaction.member?.user.username}`,
-		iconURL: `https://cdn.discordapp.com/avatars/${interaction.member?.user.id}/${interaction.member?.user.avatar}.png`,
-	});
-	embed.setTimestamp(new Date());
-
 	// required since return from foreach doesn't return out of full function
 	let parsedURLs = true;
 
@@ -365,7 +366,7 @@ const generateReplyFromInteraction = async (
 	};
 };
 
-export default {
+const command: Command = {
 	data: new SlashCommandBuilder()
 		.setName('ptal')
 		.setDescription('Open a Please Take a Look (PTAL) request')
@@ -389,7 +390,6 @@ export default {
 			)
 		),
 	async initialize(env: Env) {
-		console.log('INITIALIZE');
 		if (!env.GITHUB_TOKEN) {
 			console.warn('Failed to initialize the /docs command: missing GITHUB_TOKEN enviroment variable.');
 			return false;
@@ -400,50 +400,37 @@ export default {
 
 		return true;
 	},
-	async execute(interaction: APIChatInputApplicationCommandInteraction, env: Env, ctx: ExecutionContext) {
-		console.log('EXECUTE');
-		// this is called on ApplicationCommand, so it uses deferredChannelMessageWithSource
-		// and needs waitUntil
-		ctx.waitUntil(
-			new Promise(async (resolve) => {
-				console.log('WAIT UNTIL');
-				const reply = await generateReplyFromInteraction(
-					getStringOption(interaction.data, 'description')!,
-					getStringOption(interaction.data, 'github')!,
-					interaction,
-					env,
-					getStringOption(interaction.data, 'deployment'),
-					getStringOption(interaction.data, 'other'),
-					getStringOption(interaction.data, 'type')
-				);
-				console.log('DEBUG REPLY');
-				console.log(reply);
-				if (!reply) resolve(false);
+	async execute(client) {
 
-				await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token, '@original'), {
-					body: {
-						type: InteractionResponseType.UpdateMessage,
-						...reply,
-					},
-				});
-				resolve(true);
-			})
-		);
+		return client.deferReply(new Promise(async (resolve) => {
+			const reply = await generateReplyFromInteraction(
+				getStringOption(client.interaction.data, 'description')!,
+				getStringOption(client.interaction.data, 'github')!,
+				client.interaction,
+				client.env,
+				getStringOption(client.interaction.data, 'deployment'),
+				getStringOption(client.interaction.data, 'other'),
+				getStringOption(client.interaction.data, 'type')
+			);
+			if (!reply) resolve(false);
 
-		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
-			body: {
-				type: InteractionResponseType.DeferredChannelMessageWithSource,
-			},
-		});
-		return new Response();
+			await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
+				body: {
+					type: InteractionResponseType.UpdateMessage,
+					...reply,
+				},
+			});
+			resolve(true);
+		}));
+		
 	},
-	async button(interaction: APIMessageComponentButtonInteraction, env: Env, ctx: ExecutionContext) {
-		ctx.waitUntil(
+	async button(client) {
+		client.ctx.waitUntil(
 			new Promise(async (resolve) => {
-				let parts = interaction.data.custom_id.split('-');
+				let parts = client.interaction.data.custom_id.split('-');
 
 				if (parts[1] == 'refresh') {
-					let descriptionArray = interaction.message.content.split(' ');
+					let descriptionArray = client.interaction.message.content.split(' ');
 
 					let emoji = null;
 					if (descriptionArray[0] != '**PTAL**') {
@@ -454,8 +441,8 @@ export default {
 					descriptionArray.shift();
 					let description = descriptionArray.join(' ');
 
-					const githubButton = interaction.message.components![0].components[0] as APIButtonComponentWithURL;
-					let otherButton = interaction.message.components![0].components[1] as APIButtonComponent;
+					const githubButton = client.interaction.message.components![0].components[0] as APIButtonComponentWithURL;
+					let otherButton = client.interaction.message.components![0].components[1] as APIButtonComponent;
 					let other: string | undefined = undefined;
 					if (otherButton.style == ButtonStyle.Link) {
 						other = otherButton.url;
@@ -463,7 +450,7 @@ export default {
 
 					let urls: string[] = [];
 
-					let desc = interaction.message.embeds[0].description;
+					let desc = client.interaction.message.embeds[0].description;
 
 					let lines = desc?.split('\n')!;
 					for (let i = lines?.length - 1; i >= 0; i--) {
@@ -479,8 +466,8 @@ export default {
 					const reply = await generateReplyFromInteraction(
 						description,
 						githubButton.url,
-						interaction,
-						env,
+						client.interaction,
+						client.env,
 						other,
 						urls.join(','),
 						emoji ? emoji : undefined
@@ -488,7 +475,7 @@ export default {
 					if (!reply) return;
 
 					try {
-						await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token), {
+						await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token), {
 							body: {
 								content: reply.content,
 								embeds: reply.embeds,
@@ -497,7 +484,7 @@ export default {
 						});
 					} catch (exception) {
 						console.error(exception);
-						await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token), {
+						await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token), {
 							body: {
 								content: 'Something went wrong while updating your /ptal request!',
 							},
@@ -507,11 +494,9 @@ export default {
 				resolve(true);
 			})
 		);
-		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
-			body: {
-				type: InteractionResponseType.DeferredMessageUpdate,
-			},
-		});
-		return new Response();
+
+		return client.deferUpdate();
 	},
 };
+
+export default command;
