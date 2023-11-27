@@ -1,4 +1,4 @@
-import { APIChatInputApplicationCommandInteraction, InteractionResponseType } from "discord-api-types/v10";
+import { APIChatInputApplicationCommandInteraction, InteractionResponseType, APIBaseInteraction, InteractionType } from "discord-api-types/v10";
 import { Env } from ".";
 
 class DiscordResponse extends Response {
@@ -17,34 +17,42 @@ export class DiscordClient {
 	env: Env;
 	ctx: ExecutionContext;
 
-	constructor(env: Env, ctx: ExecutionContext)
-	{
+	constructor(env: Env, ctx: ExecutionContext) {
 		this.env = env;
 		this.ctx = ctx;
 	}
 
 }
 
-export class InteractionClient extends DiscordClient {
+export class InteractionClient<Type extends InteractionType> extends DiscordClient {
 
-	interaction: APIChatInputApplicationCommandInteraction;
+	interaction: APIBaseInteraction<Type, any>;
 
-	constructor(interaction: APIChatInputApplicationCommandInteraction, env: Env, ctx: ExecutionContext) {
+	constructor(interaction: APIBaseInteraction<Type, any>, env: Env, ctx: ExecutionContext) {
 		super(env, ctx);
-		
+
 		this.interaction = interaction;
 
 	}
 
 	deferReply(promise?: Promise<any>): DiscordResponse {
 
-		if(promise)
-		{
+		if (promise) {
 			this.ctx.waitUntil(promise);
 		}
 
 		return new DiscordResponse({
 			type: InteractionResponseType.DeferredChannelMessageWithSource
+		});
+	}
+
+	deferUpdate(promise?: Promise<any>): DiscordResponse {
+		if (promise) {
+			this.ctx.waitUntil(promise);
+		}
+
+		return new DiscordResponse({
+			type: InteractionResponseType.DeferredMessageUpdate
 		});
 	}
 
@@ -54,7 +62,15 @@ export class InteractionClient extends DiscordClient {
 			type: InteractionResponseType.ChannelMessageWithSource,
 			data
 		})
+	}
 
+	autocomplete(choices: any): DiscordResponse {
+		return new DiscordResponse({
+			type: InteractionResponseType.ApplicationCommandAutocompleteResult,
+			data: {
+				choices
+			},
+		})
 	}
 
 }

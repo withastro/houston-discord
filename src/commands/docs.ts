@@ -296,11 +296,11 @@ const command: Command = {
 	
 		return client.deferReply();
 	},
-	async autocomplete(interaction: APIApplicationCommandAutocompleteInteraction) {
-		const query = getStringOption(interaction.data, 'query')!;
+	async autocomplete(client) {
+		const query = getStringOption(client.interaction.data, 'query')!;
 
 		const reply = await index.search<SearchHit>(query, {
-			facetFilters: [['lang:' + (getStringOption(interaction.data, 'language') ?? 'en')]],
+			facetFilters: [['lang:' + (getStringOption(client.interaction.data, 'language') ?? 'en')]],
 			hitsPerPage: 20,
 			distinct: true,
 		});
@@ -319,16 +319,7 @@ const command: Command = {
 			});
 		}
 
-		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
-			body: {
-				type: InteractionResponseType.ApplicationCommandAutocompleteResult,
-				data: {
-					choices: hits,
-				},
-			},
-		});
-
-		return new Response();
+		return client.autocomplete(hits);
 	},
 };
 

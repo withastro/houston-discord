@@ -7,8 +7,8 @@ declare interface Command {
 	data: Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">,
 	initialize?(env?: Env): boolean | Promise<boolean>,
 	execute(client: InteractionClient): JsonResponse | any,
-	autocomplete?(interaction: APIBaseInteraction<InteractionType, any>),
-	button?(interaction: APIBaseInteraction<InteractionType, any>, env: Env, ctx: ExecutionContext)
+	autocomplete?(client: InteractionClient),
+	button?(client: InteractionClient)
 }
 
 declare interface Event {

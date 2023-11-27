@@ -427,13 +427,13 @@ const command: Command = {
 		}));
 		
 	},
-	async button(interaction: APIMessageComponentButtonInteraction, env: Env, ctx: ExecutionContext) {
-		ctx.waitUntil(
+	async button(client) {
+		client.ctx.waitUntil(
 			new Promise(async (resolve) => {
-				let parts = interaction.data.custom_id.split('-');
+				let parts = client.interaction.data.custom_id.split('-');
 
 				if (parts[1] == 'refresh') {
-					let descriptionArray = interaction.message.content.split(' ');
+					let descriptionArray = client.interaction.message.content.split(' ');
 
 					let emoji = null;
 					if (descriptionArray[0] != '**PTAL**') {
@@ -444,8 +444,8 @@ const command: Command = {
 					descriptionArray.shift();
 					let description = descriptionArray.join(' ');
 
-					const githubButton = interaction.message.components![0].components[0] as APIButtonComponentWithURL;
-					let otherButton = interaction.message.components![0].components[1] as APIButtonComponent;
+					const githubButton = client.interaction.message.components![0].components[0] as APIButtonComponentWithURL;
+					let otherButton = client.interaction.message.components![0].components[1] as APIButtonComponent;
 					let other: string | undefined = undefined;
 					if (otherButton.style == ButtonStyle.Link) {
 						other = otherButton.url;
@@ -453,7 +453,7 @@ const command: Command = {
 
 					let urls: string[] = [];
 
-					let desc = interaction.message.embeds[0].description;
+					let desc = client.interaction.message.embeds[0].description;
 
 					let lines = desc?.split('\n')!;
 					for (let i = lines?.length - 1; i >= 0; i--) {
@@ -469,8 +469,8 @@ const command: Command = {
 					const reply = await generateReplyFromInteraction(
 						description,
 						githubButton.url,
-						interaction,
-						env,
+						client.interaction,
+						client.env,
 						other,
 						urls.join(','),
 						emoji ? emoji : undefined
@@ -478,7 +478,7 @@ const command: Command = {
 					if (!reply) return;
 
 					try {
-						await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token), {
+						await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token), {
 							body: {
 								content: reply.content,
 								embeds: reply.embeds,
@@ -487,7 +487,7 @@ const command: Command = {
 						});
 					} catch (exception) {
 						console.error(exception);
-						await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token), {
+						await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token), {
 							body: {
 								content: 'Something went wrong while updating your /ptal request!',
 							},
@@ -497,12 +497,8 @@ const command: Command = {
 				resolve(true);
 			})
 		);
-		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
-			body: {
-				type: InteractionResponseType.DeferredMessageUpdate,
-			},
-		});
-		return new Response();
+
+		return client.deferUpdate();
 	},
 };
 
