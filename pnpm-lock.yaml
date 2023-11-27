@@ -77,8 +77,8 @@ devDependencies:
     specifier: ^5.2.2
     version: 5.2.2
   wrangler:
-    specifier: ^3.16.0
-    version: 3.16.0
+    specifier: ^3.17.1
+    version: 3.17.1
 
 packages:
 
@@ -539,7 +539,6 @@ packages:
   /@fastify/busboy@2.1.0:
     resolution: {integrity: sha512-+KpH+QxZU7O4675t3mnkQKcZZg56u+K/Ct2K+N2AZYNVK8kyeo/bI18tI8aPm3tvNNRyTWfj6s5tnGNlcbQRsA==}
     engines: {node: '>=14'}
-    dev: false
 
   /@humanwhocodes/config-array@0.11.13:
     resolution: {integrity: sha512-JSBDMiDKSzQVngfRjOdFXgFfklaXI4K9nLF49Auh21lmBWRLIK3+xTErTWD4KU54pb6coM6ESE7Awz/FNU3zgQ==}
@@ -1032,13 +1031,6 @@ packages:
     engines: {node: '>=12'}
     dependencies:
       run-applescript: 5.0.0
-    dev: true
-
-  /busboy@1.6.0:
-    resolution: {integrity: sha512-8SFQbg/0hQ9xy3UNTB0YEnsNBbWfhf7RtnzpL7TkBiTBRfrQ9Fxcnz7VJsleJpyp6rVLvXiuORqjlHi5q+PYuA==}
-    engines: {node: '>=10.16.0'}
-    dependencies:
-      streamsearch: 1.1.0
     dev: true
 
   /callsites@3.1.0:
@@ -1781,8 +1773,8 @@ packages:
     engines: {node: '>=12'}
     dev: true
 
-  /miniflare@3.20231030.0:
-    resolution: {integrity: sha512-iCg1dNauUG+kNp7jizcNmV/1XFItuTDvD/6xIC34PrszgKxYCbBO2R72y5NEDJTwaqr5ohQI/320wuJ8GEe7nQ==}
+  /miniflare@3.20231030.1:
+    resolution: {integrity: sha512-Y+EkgV/aFg/3Y/xfFtImK36sLZGXvNS45avVEz0cUCA2pGpg4hGdPu1Udmz5b06SyeUEFVf/dEDMJwdRYVEgLw==}
     engines: {node: '>=16.13'}
     hasBin: true
     dependencies:
@@ -1793,7 +1785,7 @@ packages:
       glob-to-regexp: 0.4.1
       source-map-support: 0.5.21
       stoppable: 1.1.0
-      undici: 5.22.1
+      undici: 5.27.2
       workerd: 1.20231030.0
       ws: 8.14.2
       youch: 3.3.3
@@ -2162,11 +2154,6 @@ packages:
     engines: {node: '>=4', npm: '>=6'}
     dev: true
 
-  /streamsearch@1.1.0:
-    resolution: {integrity: sha512-Mcc5wHehp9aXz1ax6bZUyY5afg9u2rv5cqQI3mRrYkGC8rW2hM02jWuwjtL++LS5qinSyhj2QfLyNsuc+VsExg==}
-    engines: {node: '>=10.0.0'}
-    dev: true
-
   /strip-ansi@6.0.1:
     resolution: {integrity: sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==}
     engines: {node: '>=8'}
@@ -2282,19 +2269,11 @@ packages:
     hasBin: true
     dev: true
 
-  /undici@5.22.1:
-    resolution: {integrity: sha512-Ji2IJhFXZY0x/0tVBXeQwgPlLWw13GVzpsWPQ3rV50IFMMof2I55PZZxtm4P6iNq+L5znYN9nSTAq0ZyE6lSJw==}
-    engines: {node: '>=14.0'}
-    dependencies:
-      busboy: 1.6.0
-    dev: true
-
   /undici@5.27.2:
     resolution: {integrity: sha512-iS857PdOEy/y3wlM3yRp+6SNQQ6xU0mmZcwRSriqk+et/cwWAtwmIGf6WkoDN2EK/AMdCO/dfXzIwi+rFMrjjQ==}
     engines: {node: '>=14.0'}
     dependencies:
       '@fastify/busboy': 2.1.0
-    dev: false
 
   /universal-user-agent@6.0.0:
     resolution: {integrity: sha512-isyNax3wXoKaulPDZWHQqbmIx1k2tb9fb3GGDBRxCscfYV2Ch7WxPArBsFEG8s/safwXTT7H4QGhaIkTp9447w==}
@@ -2332,8 +2311,8 @@ packages:
       '@cloudflare/workerd-windows-64': 1.20231030.0
     dev: true
 
-  /wrangler@3.16.0:
-    resolution: {integrity: sha512-MIx35sSdFKE3hnfWB6xWUnrt3OiyKK+PQnc9kFLjksLESX0tLmEk1gdvThYHliY90kkelS+nbH48SUGTFAI5BA==}
+  /wrangler@3.17.1:
+    resolution: {integrity: sha512-Pr9+/tjFkthzG63uoVm1NtVvgokT6p92fy1UsOgrntHyTu0pZMC1VJzG0NC8Vhs+z/+yTT8AqVV6AiJb3w8ZOQ==}
     engines: {node: '>=16.17.0'}
     hasBin: true
     dependencies:
@@ -2343,7 +2322,7 @@ packages:
       blake3-wasm: 2.1.5
       chokidar: 3.5.3
       esbuild: 0.17.19
-      miniflare: 3.20231030.0
+      miniflare: 3.20231030.1
       nanoid: 3.3.7
       path-to-regexp: 6.2.1
       resolve.exports: 2.0.2

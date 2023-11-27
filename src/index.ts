@@ -12,6 +12,7 @@ import {
 	InteractionType,
 } from 'discord-api-types/v10';
 import type { ExecutionContext } from '@cloudflare/workers-types';
+import { InteractionClient } from './discordClient.js';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface Env {
@@ -66,8 +67,8 @@ router.post('/', async (request, env: Env, ctx: ExecutionContext) => {
 	}
 
 	if (interaction.type == InteractionType.ApplicationCommand) {
-		interaction = interaction as APIChatInputApplicationCommandInteraction;
-		const interactionData: APIApplicationCommandInteractionData = interaction.data;
+		const slashInteraction = interaction as APIChatInputApplicationCommandInteraction;
+		const interactionData: APIApplicationCommandInteractionData = slashInteraction.data;
 
 		const command = commandList[interactionData.name];
 
@@ -78,7 +79,7 @@ router.post('/', async (request, env: Env, ctx: ExecutionContext) => {
 				}
 			}
 
-			return await command.execute(interaction, env, ctx);
+			return await command.execute(new InteractionClient(slashInteraction, env, ctx));
 		}
 
 		return new Response('Command not found', { status: 404 });

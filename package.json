@@ -47,7 +47,7 @@
 		"eslint-plugin-prettier": "^5.0.1",
 		"prettier": "^3.0.3",
 		"typescript": "^5.2.2",
-		"wrangler": "^3.16.0"
+		"wrangler": "^3.17.1"
 	},
 	"license": "MIT"
 }

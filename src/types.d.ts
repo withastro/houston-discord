@@ -1,11 +1,12 @@
 import { SlashCommandBuilder } from "@discordjs/builders"
 import { Env, JsonResponse } from "."
 import { APIBaseInteraction, InteractionType } from "discord-api-types/v10"
+import { DiscordClient, InteractionClient } from "./discordClient"
 
 declare interface Command {
 	data: Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">,
 	initialize?(env?: Env): boolean | Promise<boolean>,
-	execute(interaction: APIBaseInteraction<InteractionType, any>, env: Env, ctx: ExecutionContext): JsonResponse | any,
+	execute(client: InteractionClient): JsonResponse | any,
 	autocomplete?(interaction: APIBaseInteraction<InteractionType, any>),
 	button?(interaction: APIBaseInteraction<InteractionType, any>, env: Env, ctx: ExecutionContext)
 }

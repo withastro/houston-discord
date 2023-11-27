@@ -10,12 +10,11 @@ import {
 	Routes,
 	InteractionResponseType,
 } from 'discord-api-types/v10';
-import { getBooleanOption, getStringOption } from '../utils/discordUtils.js';
+import { getStringOption } from '../utils/discordUtils.js';
 import { createFetchRequester } from '@algolia/requester-fetch';
 import { REST } from '@discordjs/rest';
-import { InteractionResponseFlags } from 'discord-interactions';
 
-let client: SearchClient;
+let searchClient: SearchClient;
 let index: SearchIndex;
 let rest: REST;
 
@@ -141,22 +140,22 @@ const command: Command = {
 			return false;
 		}
 
-		client = algoliasearch(env.ALGOLIA_APP_ID, env.ALGOLIA_API_KEY, {
+		searchClient = algoliasearch(env.ALGOLIA_APP_ID, env.ALGOLIA_API_KEY, {
 			requester: createFetchRequester(),
 		});
-		index = client.initIndex(env.ALGOLIA_INDEX);
+		index = searchClient.initIndex(env.ALGOLIA_INDEX);
 		rest = new REST({ version: '10' }).setToken(env.DISCORD_TOKEN);
 
 		return true;
 	},
-	async execute(interaction: APIChatInputApplicationCommandInteraction, env: Env, ctx: ExecutionContext) {
-		ctx.waitUntil(
+	async execute(client) {
+		client.ctx.waitUntil(
 			new Promise(async (resolve) => {
-				let query = getStringOption(interaction.data, 'query')!;
+				let query = getStringOption(client.interaction.data, 'query')!;
 
 				if (query.startsWith('auto-')) {
 					const reply: SearchHit = await index.getObject(query.substring(5));
-					await returnObjectResult(interaction, reply, env);
+					await returnObjectResult(client.interaction, reply, client.env);
 					return;
 				}
 
@@ -165,7 +164,7 @@ const command: Command = {
 				}
 
 				const reply = await index.search<SearchHit>(query, {
-					facetFilters: [['lang:' + (getStringOption(interaction.data, 'language') ?? 'en')]],
+					facetFilters: [['lang:' + (getStringOption(client.interaction.data, 'language') ?? 'en')]],
 					highlightPreTag: '**',
 					highlightPostTag: '**',
 					hitsPerPage: 20,
@@ -193,6 +192,8 @@ const command: Command = {
 					],
 				});
 
+				console.log(reply)
+
 				const items = reply.hits.map((hit) => {
 					const url = new URL(hit.url);
 					if (url.hash == '#overview') url.hash = '';
@@ -216,6 +217,8 @@ const command: Command = {
 				delete categories['Tutorials'];
 
 				const embeds: EmbedBuilder[] = [];
+
+				console.log(embeds)
 
 				embeds.push(getDefaultEmbed().setTitle(`Results for "${query}"`));
 
@@ -281,7 +284,7 @@ const command: Command = {
 					embeds[0].setTitle(`No results found for "${query}"`);
 				}
 
-				await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token, '@original'), {
+				await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
 					body: {
 						type: InteractionResponseType.UpdateMessage,
 						embeds: embeds.map((embed) => embed.toJSON()),
@@ -290,15 +293,8 @@ const command: Command = {
 				resolve(true);
 			})
 		);
-		await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
-			body: {
-				type: InteractionResponseType.DeferredChannelMessageWithSource,
-				data: {
-					flags: getBooleanOption(interaction.data, 'hidden') != false ? InteractionResponseFlags.EPHEMERAL : 0,
-				},
-			},
-		});
-		return new Response();
+	
+		return client.deferReply();
 	},
 	async autocomplete(interaction: APIApplicationCommandAutocompleteInteraction) {
 		const query = getStringOption(interaction.data, 'query')!;
