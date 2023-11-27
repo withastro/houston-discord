@@ -390,7 +390,6 @@ const command: Command = {
 			)
 		),
 	async initialize(env: Env) {
-		console.log('INITIALIZE');
 		if (!env.GITHUB_TOKEN) {
 			console.warn('Failed to initialize the /docs command: missing GITHUB_TOKEN enviroment variable.');
 			return false;
@@ -413,8 +412,6 @@ const command: Command = {
 				getStringOption(client.interaction.data, 'other'),
 				getStringOption(client.interaction.data, 'type')
 			);
-			console.log('DEBUG REPLY');
-			console.log(reply);
 			if (!reply) resolve(false);
 
 			await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
