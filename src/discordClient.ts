@@ -1,5 +1,6 @@
 import { APIChatInputApplicationCommandInteraction, InteractionResponseType, APIBaseInteraction, InteractionType } from "discord-api-types/v10";
 import { Env } from ".";
+import { InteractionResponseFlags } from "discord-interactions";
 
 class DiscordResponse extends Response {
 	constructor(body?: any, init?: ResponseInit) {
@@ -24,9 +25,9 @@ export class DiscordClient {
 
 }
 
-export class InteractionClient<Type extends InteractionType> extends DiscordClient {
+export class InteractionClient<Type extends InteractionType, DataType> extends DiscordClient {
 
-	interaction: APIBaseInteraction<Type, any>;
+	interaction: APIBaseInteraction<Type, DataType>;
 
 	constructor(interaction: APIBaseInteraction<Type, any>, env: Env, ctx: ExecutionContext) {
 		super(env, ctx);
@@ -35,14 +36,15 @@ export class InteractionClient<Type extends InteractionType> extends DiscordClie
 
 	}
 
-	deferReply(promise?: Promise<any>): DiscordResponse {
+	deferReply(promise: Promise<any>, empheral?: boolean): DiscordResponse {
 
-		if (promise) {
-			this.ctx.waitUntil(promise);
-		}
+		this.ctx.waitUntil(promise);
 
 		return new DiscordResponse({
-			type: InteractionResponseType.DeferredChannelMessageWithSource
+			type: InteractionResponseType.DeferredChannelMessageWithSource,
+			data: {
+				flags: (empheral)? InteractionResponseFlags.EPHEMERAL : 0
+			}
 		});
 	}
 

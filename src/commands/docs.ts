@@ -10,7 +10,7 @@ import {
 	Routes,
 	InteractionResponseType,
 } from 'discord-api-types/v10';
-import { getStringOption } from '../utils/discordUtils.js';
+import { getBooleanOption, getStringOption } from '../utils/discordUtils.js';
 import { createFetchRequester } from '@algolia/requester-fetch';
 import { REST } from '@discordjs/rest';
 
@@ -149,7 +149,7 @@ const command: Command = {
 		return true;
 	},
 	async execute(client) {
-		client.ctx.waitUntil(
+		let toWait =
 			new Promise(async (resolve) => {
 				let query = getStringOption(client.interaction.data, 'query')!;
 
@@ -292,9 +292,8 @@ const command: Command = {
 				});
 				resolve(true);
 			})
-		);
 	
-		return client.deferReply();
+		return client.deferReply(toWait, getBooleanOption(client.interaction.data, "hidden") ?? true);
 	},
 	async autocomplete(client) {
 		const query = getStringOption(client.interaction.data, 'query')!;

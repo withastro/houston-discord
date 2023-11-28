@@ -67,8 +67,8 @@ router.post('/', async (request, env: Env, ctx: ExecutionContext) => {
 	}
 
 	if (interaction.type == InteractionType.ApplicationCommand) {
-		interaction = interaction as APIChatInputApplicationCommandInteraction;
-		const interactionData: APIApplicationCommandInteractionData = interaction.data;
+		const slashInteraction = interaction as APIChatInputApplicationCommandInteraction;
+		const interactionData: APIApplicationCommandInteractionData = slashInteraction.data;
 
 		const command = commandList[interactionData.name];
 
@@ -79,7 +79,7 @@ router.post('/', async (request, env: Env, ctx: ExecutionContext) => {
 				}
 			}
 
-			return await command.execute(new InteractionClient(interaction, env, ctx));
+			return await command.execute(new InteractionClient(slashInteraction, env, ctx));
 		}
 
 		return new Response('Command not found', { status: 404 });

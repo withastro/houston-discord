@@ -3,10 +3,10 @@ import { Env, JsonResponse } from "."
 import { APIBaseInteraction, InteractionType } from "discord-api-types/v10"
 import { DiscordClient, InteractionClient } from "./discordClient"
 
-declare interface Command {
+declare type Command = {
 	data: Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">,
 	initialize?(env?: Env): boolean | Promise<boolean>,
-	execute(client: InteractionClient): JsonResponse | any,
+	execute(client: InteractionClient<InteractionType.ApplicationCommand>): JsonResponse | any,
 	autocomplete?(client: InteractionClient),
 	button?(client: InteractionClient)
 }
