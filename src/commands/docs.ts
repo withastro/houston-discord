@@ -1,11 +1,22 @@
 import algoliasearch, { SearchClient, SearchIndex } from 'algoliasearch';
-import { AutocompleteInteraction, ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { EmbedBuilder, SlashCommandBuilder } from '@discordjs/builders';
 import { decode } from 'html-entities';
-import { categories, SearchHit } from '../types';
+import { categories, Command, SearchHit } from '../types';
 import { getDefaultEmbed } from '../utils/embeds.js';
+import { Env } from '..';
+import {
+	APIChatInputApplicationCommandInteraction,
+	APIApplicationCommandAutocompleteInteraction,
+	Routes,
+	InteractionResponseType,
+} from 'discord-api-types/v10';
+import { getStringOption } from '../utils/discordUtils.js';
+import { createFetchRequester } from '@algolia/requester-fetch';
+import { REST } from '@discordjs/rest';
 
-let client: SearchClient;
+let searchClient: SearchClient;
 let index: SearchIndex;
+let rest: REST;
 
 const generateNameFromHit = (hit: SearchHit): string => {
 	return decode(
@@ -27,14 +38,21 @@ const reduce = (string: string, limit: number, delimiter: string | null): string
 	return string;
 };
 
-const returnObjectResult = async (interaction: ChatInputCommandInteraction, object: SearchHit) => {
+const returnObjectResult = async (
+	interaction: APIChatInputApplicationCommandInteraction,
+	object: SearchHit,
+	env: Env
+) => {
 	const embed = getDefaultEmbed();
 
 	embed.setTitle(decode(generateNameFromHit(object)));
 
 	let description = '';
 
-	const facetFilters: string[][] = [['lang:' + (interaction.options.getString('language') ?? 'en')], ['type:content']];
+	const facetFilters: string[][] = [
+		['lang:' + (getStringOption(interaction.data, 'language') ?? 'en')],
+		['type:content'],
+	];
 
 	let highest = 0;
 
@@ -75,10 +93,15 @@ const returnObjectResult = async (interaction: ChatInputCommandInteraction, obje
 
 	embed.setDescription(description);
 
-	await interaction.editReply({ embeds: [embed] });
+	await rest.patch(Routes.webhookMessage(env.DISCORD_CLIENT_ID, interaction.token, '@original'), {
+		body: {
+			type: InteractionResponseType.UpdateMessage,
+			embeds: [embed.toJSON()],
+		},
+	});
 };
 
-export default {
+const command: Command = {
 	data: new SlashCommandBuilder()
 		.setName('docs')
 		.setDescription('Search the docs')
@@ -111,154 +134,173 @@ export default {
 					{ name: 'Русский', value: 'ru' }
 				)
 		),
-	initialize() {
-		if (!process.env.ALGOLIA_APP_ID || !process.env.ALGOLIA_API_KEY || !process.env.ALGOLIA_INDEX) {
+	initialize(env: Env) {
+		if (!env.ALGOLIA_APP_ID || !env.ALGOLIA_API_KEY || !env.ALGOLIA_INDEX) {
 			console.warn('Failed to initialize the /docs command: missing algolia enviroment variables.');
 			return false;
 		}
 
-		client = algoliasearch(process.env.ALGOLIA_APP_ID, process.env.ALGOLIA_API_KEY);
-		client.initIndex(process.env.ALGOLIA_INDEX);
+		searchClient = algoliasearch(env.ALGOLIA_APP_ID, env.ALGOLIA_API_KEY, {
+			requester: createFetchRequester(),
+		});
+		index = searchClient.initIndex(env.ALGOLIA_INDEX);
+		rest = new REST({ version: '10' }).setToken(env.DISCORD_TOKEN);
 
 		return true;
 	},
-	async execute(interaction: ChatInputCommandInteraction) {
-		await interaction.deferReply({ ephemeral: interaction.options.getBoolean('hidden') ?? true });
+	async execute(client) {
+		client.ctx.waitUntil(
+			new Promise(async (resolve) => {
+				let query = getStringOption(client.interaction.data, 'query')!;
 
-		if (interaction.options.getString('query')!.startsWith('auto-')) {
-			const reply: SearchHit = await index.getObject(interaction.options.getString('query')!.substring(5));
-			await returnObjectResult(interaction, reply);
-			return;
-		}
+				if (query.startsWith('auto-')) {
+					const reply: SearchHit = await index.getObject(query.substring(5));
+					await returnObjectResult(client.interaction, reply, client.env);
+					return;
+				}
 
-		let query = interaction.options.getString('query')!;
+				if (query.startsWith('user-')) {
+					query = query.substring(5);
+				}
 
-		if (query.startsWith('user-')) {
-			query = query.substring(5);
-		}
+				const reply = await index.search<SearchHit>(query, {
+					facetFilters: [['lang:' + (getStringOption(client.interaction.data, 'language') ?? 'en')]],
+					highlightPreTag: '**',
+					highlightPostTag: '**',
+					hitsPerPage: 20,
+					snippetEllipsisText: '…',
+					attributesToRetrieve: [
+						'hierarchy.lvl0',
+						'hierarchy.lvl1',
+						'hierarchy.lvl2',
+						'hierarchy.lvl3',
+						'hierarchy.lvl4',
+						'hierarchy.lvl5',
+						'hierarchy.lvl6',
+						'content',
+						'type',
+						'url',
+					],
+					attributesToSnippet: [
+						'hierarchy.lvl1:10',
+						'hierarchy.lvl2:10',
+						'hierarchy.lvl3:10',
+						'hierarchy.lvl4:10',
+						'hierarchy.lvl5:10',
+						'hierarchy.lvl6:10',
+						'content:10',
+					],
+				});
+
+				console.log(reply)
+
+				const items = reply.hits.map((hit) => {
+					const url = new URL(hit.url);
+					if (url.hash == '#overview') url.hash = '';
+
+					return {
+						...hit,
+						url: url.href,
+					};
+				});
+
+				const categories: categories = {};
+
+				items.forEach((item) => {
+					if (!categories[item.hierarchy.lvl0]) {
+						categories[item.hierarchy.lvl0] = [];
+					}
+					categories[item.hierarchy.lvl0].push(item);
+				});
+
+				// exclude tutorials
+				delete categories['Tutorials'];
+
+				const embeds: EmbedBuilder[] = [];
+
+				console.log(embeds)
+
+				embeds.push(getDefaultEmbed().setTitle(`Results for "${query}"`));
+
+				for (const category in categories) {
+					const embed = getDefaultEmbed().setTitle(decode(category));
+
+					let body = '';
+
+					let items: { [heading: string]: SearchHit[] } = {};
+
+					for (let i = 0; i < categories[category].length && i < 5; i++) {
+						const item = categories[category][i];
+						if (!item._snippetResult) return;
+
+						if (!items[item.hierarchy[`lvl1`]]) {
+							items[item.hierarchy[`lvl1`]] = [];
+						}
+
+						items[item.hierarchy[`lvl1`]].push(item);
+					}
+
+					for (const subjectName in items) {
+						const subject = items[subjectName];
+
+						for (let i = 0; i < subject.length; i++) {
+							const item = subject[i];
+
+							let hierarchy = '';
+
+							for (let i = 1; i < 7; i++) {
+								if (item.hierarchy[`lvl${i}`]) {
+									let string = i != 1 ? ' > ' : '';
+
+									string += item.hierarchy[`lvl${i}`];
+
+									hierarchy += string;
+								} else {
+									break;
+								}
+							}
+
+							let result = '';
+
+							if (item._snippetResult) {
+								if (item.type == 'content') {
+									result = item._snippetResult.content.value;
+								} else {
+									result = item._snippetResult.hierarchy[item.type].value;
+								}
+
+								body += decode(`[🔗](${item.url}) **${hierarchy}**\n`);
+								body += decode(`[${result.substring(0, 66)}](${item.url})\n`);
+							}
+						}
+					}
+
+					embed.setDescription(body);
+
+					embeds.push(embed);
+				}
+
+				if (embeds.length == 1) {
+					embeds[0].setTitle(`No results found for "${query}"`);
+				}
+
+				await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
+					body: {
+						type: InteractionResponseType.UpdateMessage,
+						embeds: embeds.map((embed) => embed.toJSON()),
+					},
+				});
+				resolve(true);
+			})
+		);
+	
+		return client.deferReply();
+	},
+	async autocomplete(client) {
+		const query = getStringOption(client.interaction.data, 'query')!;
 
 		const reply = await index.search<SearchHit>(query, {
-			facetFilters: [['lang:' + (interaction.options.getString('language') ?? 'en')]],
-			highlightPreTag: '**',
-			highlightPostTag: '**',
-			hitsPerPage: 20,
-			snippetEllipsisText: '…',
-			attributesToRetrieve: [
-				'hierarchy.lvl0',
-				'hierarchy.lvl1',
-				'hierarchy.lvl2',
-				'hierarchy.lvl3',
-				'hierarchy.lvl4',
-				'hierarchy.lvl5',
-				'hierarchy.lvl6',
-				'content',
-				'type',
-				'url',
-			],
-			attributesToSnippet: [
-				'hierarchy.lvl1:10',
-				'hierarchy.lvl2:10',
-				'hierarchy.lvl3:10',
-				'hierarchy.lvl4:10',
-				'hierarchy.lvl5:10',
-				'hierarchy.lvl6:10',
-				'content:10',
-			],
-		});
-
-		const items = reply.hits.map((hit) => {
-			const url = new URL(hit.url);
-			if (url.hash == '#overview') url.hash = '';
-
-			return {
-				...hit,
-				url: url.href,
-			};
-		});
-
-		const categories: categories = {};
-
-		items.forEach((item) => {
-			if (!categories[item.hierarchy.lvl0]) {
-				categories[item.hierarchy.lvl0] = [];
-			}
-			categories[item.hierarchy.lvl0].push(item);
-		});
-
-		// exclude tutorials
-		delete categories['Tutorials'];
-
-		const embeds: EmbedBuilder[] = [];
-
-		embeds.push(getDefaultEmbed().setTitle(`Results for "${query}"`));
-
-		for (const category in categories) {
-			const embed = getDefaultEmbed().setTitle(decode(category));
-
-			let body = '';
-
-			let items: { [heading: string]: SearchHit[] } = {};
-
-			for (let i = 0; i < categories[category].length && i < 5; i++) {
-				const item = categories[category][i];
-				if (!item._snippetResult) return;
-
-				if (!items[item.hierarchy[`lvl1`]]) {
-					items[item.hierarchy[`lvl1`]] = [];
-				}
-
-				items[item.hierarchy[`lvl1`]].push(item);
-			}
-
-			for (const subjectName in items) {
-				const subject = items[subjectName];
-
-				for (let i = 0; i < subject.length; i++) {
-					const item = subject[i];
-
-					let hierarchy = '';
-
-					for (let i = 1; i < 7; i++) {
-						if (item.hierarchy[`lvl${i}`]) {
-							let string = i != 1 ? ' > ' : '';
-
-							string += item.hierarchy[`lvl${i}`];
-
-							hierarchy += string;
-						} else {
-							break;
-						}
-					}
-
-					let result = '';
-
-					if (item._snippetResult) {
-						if (item.type == 'content') {
-							result = item._snippetResult.content.value;
-						} else {
-							result = item._snippetResult.hierarchy[item.type].value;
-						}
-
-						body += decode(`[🔗](${item.url}) **${hierarchy}**\n`);
-						body += decode(`[${result.substring(0, 66)}](${item.url})\n`);
-					}
-				}
-			}
-
-			embed.setDescription(body);
-
-			embeds.push(embed);
-		}
-
-		if (embeds.length == 1) {
-			embeds[0].setTitle(`No results found for "${query}"`);
-		}
-
-		await interaction.editReply({ embeds: embeds });
-	},
-	async autocomplete(interaction: AutocompleteInteraction) {
-		const reply = await index.search<SearchHit>(interaction.options.getString('query')!, {
-			facetFilters: [['lang:' + (interaction.options.getString('language') ?? 'en')]],
+			facetFilters: [['lang:' + (getStringOption(client.interaction.data, 'language') ?? 'en')]],
 			hitsPerPage: 20,
 			distinct: true,
 		});
@@ -270,13 +312,15 @@ export default {
 			};
 		});
 
-		if (interaction.options.getString('query')!.trim() != '') {
+		if (query.trim() != '') {
 			hits.unshift({
-				name: `"${interaction.options.getString('query')!}"`,
-				value: `user-${interaction.options.getString('query')!}`,
+				name: `"${query}"`,
+				value: `user-${query}`,
 			});
 		}
 
-		await interaction.respond(hits);
+		return client.autocomplete(hits);
 	},
 };
+
+export default command;

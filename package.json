@@ -3,18 +3,18 @@
 	"private": true,
 	"version": "1.0.0",
 	"description": "",
-	"main": "dist/app.js",
+	"main": "src/index.ts",
 	"type": "module",
 	"scripts": {
-		"build": "tsc --build --verbose",
-		"start": "node .",
-		"dev": "tsc && node .",
+		"start": "wrangler dev",
+		"dev": "wrangler dev",
 		"preinstall": "npx only-allow pnpm",
 		"lint": "eslint . --report-unused-disable-directives",
 		"format": "pnpm run format:code",
 		"format:ci": "pnpm run format:imports && pnpm run format:code",
 		"format:code": "prettier . -w --cache",
-		"format:imports": "organize-imports-cli ./tsconfig.json"
+		"format:imports": "organize-imports-cli ./tsconfig.json",
+		"register": "tsc -p register.tsconfig.json && node ./dist/register.js"
 	},
 	"engines": {
 		"node": ">=18.18.0",
@@ -22,16 +22,22 @@
 	},
 	"packageManager": "pnpm@8.6.12",
 	"dependencies": {
+		"@algolia/requester-fetch": "^4.20.0",
+		"@discordjs/builders": "^1.7.0",
+		"@discordjs/rest": "^2.2.0",
 		"@octokit/request-error": "^5.0.1",
 		"@octokit/rest": "^20.0.2",
 		"algoliasearch": "^4.20.0",
-		"discord.js": "^14.13.0",
+		"discord-api-types": "^0.37.63",
+		"discord-interactions": "^3.4.0",
 		"dotenv": "^16.3.1",
 		"html-entities": "^2.4.0",
+		"itty-router": "^4.0.23",
 		"node-schedule": "^2.1.1",
 		"organize-imports-cli": "^0.10.0"
 	},
 	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20231025.0",
 		"@types/node": "^18.17.18",
 		"@types/node-schedule": "^2.1.0",
 		"@typescript-eslint/eslint-plugin": "^6.10.0",
@@ -40,7 +46,8 @@
 		"eslint-config-prettier": "^9.0.0",
 		"eslint-plugin-prettier": "^5.0.1",
 		"prettier": "^3.0.3",
-		"typescript": "^5.2.2"
+		"typescript": "^5.2.2",
+		"wrangler": "^3.17.1"
 	},
 	"license": "MIT"
 }

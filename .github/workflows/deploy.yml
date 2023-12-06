@@ -1,18 +1,18 @@
-name: Build
+name: Deploy
 
 on:
     workflow_dispatch:
     push:
         branches:
             - main
-    pull_request:
-        branches:
-            - main
 
 jobs:
-    build:
-        name: Build
+    deploy:
+        name: Deploy
         runs-on: ubuntu-latest
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
         steps:
             - name: Checkout
               uses: actions/checkout@v3
@@ -25,9 +25,12 @@ jobs:
               with:
                 node-version: 20
                 cache: "pnpm"
-            
+
             - name: Install dependencies
               run: pnpm install
 
-            - name: Build
-              run: pnpm run build
+            - name: Deploy
+              uses: cloudflare/wrangler-action@v3.3.2
+              with:
+                apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                preCommands: pnpm register

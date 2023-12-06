@@ -1,11 +1,13 @@
 import {
 	ActionRowBuilder,
 	ButtonBuilder,
-	ButtonStyle,
-	ChatInputCommandInteraction,
 	SlashCommandBuilder,
-} from 'discord.js';
+} from '@discordjs/builders';
+import { ButtonStyle, APIChatInputApplicationCommandInteraction, APIApplicationCommandInteractionDataOption, APIApplicationCommandInteractionDataStringOption, ApplicationCommandOptionType, InteractionResponseType, MessageFlags, Routes } from 'discord-api-types/v10';
 import { random } from '../utils/helpers.js';
+import { getStringOption } from '../utils/discordUtils.js';
+import { Env } from '../index.js';
+import { Command } from '../types.js';
 
 const messages = [
 	`Oh no! We'll get right on this.`,
@@ -25,7 +27,7 @@ const messages = [
 	`Let's get this fixed.`,
 ];
 
-export default {
+const command: Command = {
 	data: new SlashCommandBuilder()
 		.setName('issue')
 		.setDescription('Suggest opening an issue on one of our repositories')
@@ -43,8 +45,9 @@ export default {
 					{ name: 'Prettier', value: 'prettier-plugin-astro' }
 				)
 		),
-	async execute(interaction: ChatInputCommandInteraction) {
-		const repo = interaction.options.getString('repo') ?? 'astro';
+	async execute(client) {
+		let repo = getStringOption(client.interaction.data, "repo") ?? "astro";
+
 		const message = random(messages);
 		const repoURL = new URL(`https://github.com/withastro/${repo}/`);
 		const issueURL = new URL('./issues/new/choose', repoURL);
@@ -57,11 +60,12 @@ export default {
 
 		const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
 
-		interaction.reply({
+		return client.reply({
 			content: `${message}\n\nPlease open an issue on the [\`withastro/${repo}\`](${repoURL}) repo.`,
-			flags: 'SuppressEmbeds',
-			components: [buttonRow],
-			ephemeral: false,
-		});
+			flags: MessageFlags.SuppressEmbeds,
+			components: [buttonRow.toJSON()]
+		})
 	},
 };
+
+export default command;
