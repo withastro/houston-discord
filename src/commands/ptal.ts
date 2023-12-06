@@ -1,7 +1,7 @@
+import { ActionRowBuilder, ButtonBuilder, SlashCommandBuilder } from '@discordjs/builders';
+import { REST } from '@discordjs/rest';
 import { RequestError } from '@octokit/request-error';
 import { Octokit } from '@octokit/rest';
-import { ActionRowBuilder, ButtonBuilder, SlashCommandBuilder } from '@discordjs/builders';
-import { getDefaultEmbed } from '../utils/embeds.js';
 import {
 	APIButtonComponent,
 	APIButtonComponentWithURL,
@@ -14,11 +14,11 @@ import {
 	InteractionType,
 	Routes,
 } from 'discord-api-types/v10';
-import { getStringOption } from '../utils/discordUtils.js';
-import { REST } from '@discordjs/rest';
-import { Env } from '../index.js';
 import { InteractionResponseFlags } from 'discord-interactions';
+import { Env } from '../index.js';
 import { Command } from '../types.js';
+import { getStringOption } from '../utils/discordUtils.js';
+import { getDefaultEmbed } from '../utils/embeds.js';
 
 let rest: REST;
 
@@ -401,28 +401,28 @@ const command: Command = {
 		return true;
 	},
 	async execute(client) {
+		return client.deferReply(
+			new Promise(async (resolve) => {
+				const reply = await generateReplyFromInteraction(
+					getStringOption(client.interaction.data, 'description')!,
+					getStringOption(client.interaction.data, 'github')!,
+					client.interaction,
+					client.env,
+					getStringOption(client.interaction.data, 'deployment'),
+					getStringOption(client.interaction.data, 'other'),
+					getStringOption(client.interaction.data, 'type')
+				);
+				if (!reply) resolve(false);
 
-		return client.deferReply(new Promise(async (resolve) => {
-			const reply = await generateReplyFromInteraction(
-				getStringOption(client.interaction.data, 'description')!,
-				getStringOption(client.interaction.data, 'github')!,
-				client.interaction,
-				client.env,
-				getStringOption(client.interaction.data, 'deployment'),
-				getStringOption(client.interaction.data, 'other'),
-				getStringOption(client.interaction.data, 'type')
-			);
-			if (!reply) resolve(false);
-
-			await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
-				body: {
-					type: InteractionResponseType.UpdateMessage,
-					...reply,
-				},
-			});
-			resolve(true);
-		}));
-		
+				await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
+					body: {
+						type: InteractionResponseType.UpdateMessage,
+						...reply,
+					},
+				});
+				resolve(true);
+			})
+		);
 	},
 	async button(client) {
 		client.ctx.waitUntil(

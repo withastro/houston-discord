@@ -1,5 +1,5 @@
 import { EmbedBuilder } from '@discordjs/builders';
 
 export function getDefaultEmbed() {
-	return new EmbedBuilder().setColor([0xFF, 0x5D, 0x00]);
+	return new EmbedBuilder().setColor([0xff, 0x5d, 0x00]);
 }

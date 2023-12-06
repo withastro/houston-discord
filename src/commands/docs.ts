@@ -1,18 +1,13 @@
-import algoliasearch, { SearchClient, SearchIndex } from 'algoliasearch';
-import { EmbedBuilder, SlashCommandBuilder } from '@discordjs/builders';
-import { decode } from 'html-entities';
-import { categories, Command, SearchHit } from '../types';
-import { getDefaultEmbed } from '../utils/embeds.js';
-import { Env } from '..';
-import {
-	APIChatInputApplicationCommandInteraction,
-	APIApplicationCommandAutocompleteInteraction,
-	Routes,
-	InteractionResponseType,
-} from 'discord-api-types/v10';
-import { getStringOption } from '../utils/discordUtils.js';
 import { createFetchRequester } from '@algolia/requester-fetch';
+import { EmbedBuilder, SlashCommandBuilder } from '@discordjs/builders';
 import { REST } from '@discordjs/rest';
+import algoliasearch, { SearchClient, SearchIndex } from 'algoliasearch';
+import { APIChatInputApplicationCommandInteraction, InteractionResponseType, Routes } from 'discord-api-types/v10';
+import { decode } from 'html-entities';
+import { Env } from '..';
+import { categories, Command, SearchHit } from '../types';
+import { getStringOption } from '../utils/discordUtils.js';
+import { getDefaultEmbed } from '../utils/embeds.js';
 
 let searchClient: SearchClient;
 let index: SearchIndex;
@@ -192,7 +187,7 @@ const command: Command = {
 					],
 				});
 
-				console.log(reply)
+				console.log(reply);
 
 				const items = reply.hits.map((hit) => {
 					const url = new URL(hit.url);
@@ -218,7 +213,7 @@ const command: Command = {
 
 				const embeds: EmbedBuilder[] = [];
 
-				console.log(embeds)
+				console.log(embeds);
 
 				embeds.push(getDefaultEmbed().setTitle(`Results for "${query}"`));
 
@@ -293,7 +288,7 @@ const command: Command = {
 				resolve(true);
 			})
 		);
-	
+
 		return client.deferReply();
 	},
 	async autocomplete(client) {

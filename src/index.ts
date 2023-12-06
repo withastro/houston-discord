@@ -1,7 +1,4 @@
-import commandList from './commands/index.js';
-import { Router } from 'itty-router';
-import { verifyDiscordRequest } from './utils/discordUtils.js';
-import { InteractionResponseType } from 'discord-interactions';
+import type { ExecutionContext } from '@cloudflare/workers-types';
 import {
 	APIApplicationCommandAutocompleteInteraction,
 	APIApplicationCommandInteractionData,
@@ -11,8 +8,11 @@ import {
 	APIMessageComponentButtonInteraction,
 	InteractionType,
 } from 'discord-api-types/v10';
-import type { ExecutionContext } from '@cloudflare/workers-types';
+import { InteractionResponseType } from 'discord-interactions';
+import { Router } from 'itty-router';
+import commandList from './commands/index.js';
 import { InteractionClient } from './discordClient.js';
+import { verifyDiscordRequest } from './utils/discordUtils.js';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface Env {
@@ -124,7 +124,7 @@ router.post('/', async (request, env: Env, ctx: ExecutionContext) => {
 		}
 	}
 
-	return new Response("Not found", {status: 404});
+	return new Response('Not found', { status: 404 });
 });
 
 export default {

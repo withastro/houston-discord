@@ -1,13 +1,8 @@
-import {
-	ActionRowBuilder,
-	ButtonBuilder,
-	SlashCommandBuilder,
-} from '@discordjs/builders';
-import { ButtonStyle, APIChatInputApplicationCommandInteraction, APIApplicationCommandInteractionDataOption, APIApplicationCommandInteractionDataStringOption, ApplicationCommandOptionType, InteractionResponseType, MessageFlags, Routes } from 'discord-api-types/v10';
-import { random } from '../utils/helpers.js';
-import { getStringOption } from '../utils/discordUtils.js';
-import { Env } from '../index.js';
+import { ActionRowBuilder, ButtonBuilder, SlashCommandBuilder } from '@discordjs/builders';
+import { ButtonStyle, MessageFlags } from 'discord-api-types/v10';
 import { Command } from '../types.js';
+import { getStringOption } from '../utils/discordUtils.js';
+import { random } from '../utils/helpers.js';
 
 const messages = [
 	`Oh no! We'll get right on this.`,
@@ -46,7 +41,7 @@ const command: Command = {
 				)
 		),
 	async execute(client) {
-		let repo = getStringOption(client.interaction.data, "repo") ?? "astro";
+		let repo = getStringOption(client.interaction.data, 'repo') ?? 'astro';
 
 		const message = random(messages);
 		const repoURL = new URL(`https://github.com/withastro/${repo}/`);
@@ -63,8 +58,8 @@ const command: Command = {
 		return client.reply({
 			content: `${message}\n\nPlease open an issue on the [\`withastro/${repo}\`](${repoURL}) repo.`,
 			flags: MessageFlags.SuppressEmbeds,
-			components: [buttonRow.toJSON()]
-		})
+			components: [buttonRow.toJSON()],
+		});
 	},
 };
 

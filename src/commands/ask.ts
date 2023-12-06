@@ -1,13 +1,12 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { getDefaultEmbed } from '../utils/embeds.js';
 import { Command } from '../types';
+import { getDefaultEmbed } from '../utils/embeds.js';
 
 const command: Command = {
 	data: new SlashCommandBuilder()
 		.setName('ask')
 		.setDescription('Trigger a message on questions that should be reworded'),
 	async execute(client) {
-
 		const embed = getDefaultEmbed()
 			.setTitle('Help us help you!')
 			.setDescription(
@@ -15,8 +14,8 @@ const command: Command = {
 			);
 
 		return client.reply({
-			embeds: [embed.toJSON()]
-		})
+			embeds: [embed.toJSON()],
+		});
 	},
 };
 
