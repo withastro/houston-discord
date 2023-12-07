@@ -1,6 +1,7 @@
 Astro's own Houston, a bot made to make the life of everyone within the Astro community easier.
 
 # Setting up locally
+
 Setting up Houston Bot locally might require some work depending on your experience with Discord's developer platform.
 
 ```
@@ -13,9 +14,11 @@ After having cloned the repository and having all dependencies installed, you'll
 After you have created your bot, set `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` and `DISCORD_PUBLIC_KEY` in your newly created `.dev.vars` file. If you want to use commands that require any other enviroment variables, remove the comment and set those values too.
 
 ## Registering commands
+
 If this is your first time setting up the bot, or you have modified any of the commands, you will need to signal discord that changes were made to the commands. To do this, it's as easy as running the command `pnpm register`.
 
 ## Running the bot
+
 Since this bot is running as a cloudflare worker instead of on a server, getting the bot connected to discord is slightly more difficult.
 
 First, you will want to run the command `pnpm dev`. This will start a local instance of the bot. Take note of the port logged to the console.
