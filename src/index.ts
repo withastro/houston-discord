@@ -130,6 +130,8 @@ router.post('/', async (request, env: Env, ctx: ExecutionContext) => {
 export default {
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-		return await router.handle(request, env, ctx);
+		const response = await router.handle(request, env, ctx);
+
+		return response ?? new Response("Not found", {status: 404});
 	},
 };
