@@ -133,12 +133,11 @@ export default {
 		try {
 			const response = await router.handle(request, env, ctx);
 
-			return response ?? new Response("Not found", {status: 404});
-		}
-		catch(error) {
+			return response ?? new Response('Not found', { status: 404 });
+		} catch (error) {
 			console.error(error);
 
-			return new Response("Internal Server Error", {status:500});
+			return new Response('Internal Server Error', { status: 500 });
 		}
 	},
 };
