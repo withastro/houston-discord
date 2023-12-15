@@ -30,9 +30,6 @@ const messages = [
 ];
 
 const ROLE_TWEET_SQUAD = `<@&1130995247523049522>`;
-// const PERMISSION_MENTION_EVERYONE = 1 << 17;
-
-// TODO: this must be scoped to core!
 const command: Command = {
 	data: new SlashCommandBuilder().setName('tweet').setDescription(`🪄 Summon the tweet squad!`),
 	async execute(client) {
