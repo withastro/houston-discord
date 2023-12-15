@@ -66,22 +66,24 @@ async function TryParseURL(
 	}
 }
 
-async function GetEmojiFromURL(
+async function TryGetEmojiFromURL(
 	url: URL,
 	interaction: APIChatInputApplicationCommandInteraction | APIMessageComponentButtonInteraction,
 	env: Env
 ): Promise<APIMessageComponentEmoji> {
-	let apexDomain = url.hostname.split('.').at(-2);
+	try {
+		let apexDomain = url.hostname.split('.').at(-2);
 
-	let guild = (await rest.get(Routes.guild(env.GUILD_ID!))) as APIGuild;
+		let guild = (await rest.get(Routes.guild(env.GUILD_ID!))) as APIGuild;
 
-	let emoji = guild.emojis.find((emoji) => emoji.name == apexDomain);
+		let emoji = guild.emojis.find((emoji) => emoji.name == apexDomain);
 
-	if (emoji) {
-		return { name: emoji.name!, id: emoji.id!, animated: emoji.animated! };
-	} else {
-		return { name: '❓', animated: false, id: undefined };
-	}
+		if (emoji) {
+			return { name: emoji.name!, id: emoji.id!, animated: emoji.animated! };
+		}
+	} catch {}
+
+	return { name: '❓', animated: false, id: undefined };
 }
 
 type PullRequestState = 'PENDING' | 'REVIEWED' | 'CHANGES_REQUESTED' | 'APPROVED' | 'MERGED' | 'CLOSED';
@@ -165,7 +167,7 @@ const generateReplyFromInteraction = async (
 		let deployment = await TryParseURL(deploymentOption, interaction, env);
 		if (deployment) {
 			let deploymentLink = new ButtonBuilder()
-				.setEmoji(await GetEmojiFromURL(deployment, interaction, env))
+				.setEmoji(await TryGetEmojiFromURL(deployment, interaction, env))
 				.setLabel('View as Preview')
 				.setStyle(ButtonStyle.Link)
 				.setURL(deployment.href);
@@ -216,7 +218,7 @@ const generateReplyFromInteraction = async (
 		embed.setURL(url);
 
 		let githubLink = new ButtonBuilder()
-			.setEmoji(await GetEmojiFromURL(new URL(url), interaction, env))
+			.setEmoji(await TryGetEmojiFromURL(new URL(url), interaction, env))
 			.setLabel('View on Github')
 			.setStyle(ButtonStyle.Link)
 			.setURL(url);
@@ -337,7 +339,7 @@ const generateReplyFromInteraction = async (
 			break;
 		}
 
-		content += `${await GetEmojiFromURL(urlObject, interaction, env)} `;
+		content += `${await TryGetEmojiFromURL(urlObject, interaction, env)} `;
 		content += `<${urlObject.href}>\n`;
 	}
 
