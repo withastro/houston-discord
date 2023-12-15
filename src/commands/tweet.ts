@@ -3,8 +3,8 @@ import { Command } from '../types';
 import { random } from '../utils/helpers.js';
 
 const messages = [
-    `@role is here to save the day! 🫡`,
-    `🐚 @role... assemble!`,
+	`@role is here to save the day! 🫡`,
+	`🐚 @role... assemble!`,
 	`🚨 @role ASSEMBLEEEEEEEEEEE! 🚨`,
 	`@role is here to save the day! 🫡`,
 	`🥺 Help us @role, you're our only hope`,
