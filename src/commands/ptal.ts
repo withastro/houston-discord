@@ -373,10 +373,10 @@ const command: Command = {
 		.setName('ptal')
 		.setDescription('Open a Please Take a Look (PTAL) request')
 		.addStringOption((option) =>
-			option.setName('description').setDescription('A short description of the PTAL request').setRequired(true)
+			option.setName('github').setDescription('A link to a GitHub pull request').setRequired(true)
 		)
 		.addStringOption((option) =>
-			option.setName('github').setDescription('A link to a GitHub pull request').setRequired(true)
+			option.setName('description').setDescription('A short description of the PTAL request').setRequired(true)
 		)
 		.addStringOption((option) =>
 			option.setName('deployment').setDescription('A link to a deployment related to the PTAL').setRequired(false)
