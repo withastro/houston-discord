@@ -193,15 +193,8 @@ const generateReplyFromInteraction = async (
 
 		const match = githubOption.match(githubRE) || githubOption.match(otherRE);
 		if (!match) {
-			await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
-				body: {
-					type: InteractionResponseType.ChannelMessageWithSource,
-					data: {
-						content: "The github PR entered wasn't in a supported format",
-						flags: InteractionResponseFlags.EPHEMERAL,
-					},
-				},
-			});
+			await ReplyOrEditReply(interaction, {content: "The github PR entered wasn't in a supported format"}, env);
+
 			return null;
 		}
 
