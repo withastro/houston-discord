@@ -38,6 +38,9 @@ const command: Command = {
 
 		return client.reply({
 			content: message,
+			allowed_mentions: {
+				parse: ["roles"],
+			}
 		});
 	},
 };

@@ -419,6 +419,9 @@ const command: Command = {
 				await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
 					body: {
 						type: InteractionResponseType.UpdateMessage,
+						allowed_mentions: {
+							parse: ["users", "roles"],
+						},
 						...reply,
 					},
 				});
