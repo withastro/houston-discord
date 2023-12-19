@@ -14,7 +14,6 @@ import {
 	InteractionType,
 	Routes,
 } from 'discord-api-types/v10';
-import { InteractionResponseFlags } from 'discord-interactions';
 import { Env } from '../index.js';
 import { Command } from '../types.js';
 import { getStringOption } from '../utils/discordUtils.js';
@@ -193,7 +192,7 @@ const generateReplyFromInteraction = async (
 
 		const match = githubOption.match(githubRE) || githubOption.match(otherRE);
 		if (!match) {
-			await ReplyOrEditReply(interaction, {content: "The github PR entered wasn't in a supported format"}, env);
+			await ReplyOrEditReply(interaction, { content: "The github PR entered wasn't in a supported format" }, env);
 
 			return null;
 		}
