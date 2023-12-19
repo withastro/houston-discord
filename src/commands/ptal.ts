@@ -420,7 +420,7 @@ const command: Command = {
 					body: {
 						type: InteractionResponseType.UpdateMessage,
 						allowed_mentions: {
-							parse: ["users", "roles"],
+							parse: ['users', 'roles'],
 						},
 						...reply,
 					},
