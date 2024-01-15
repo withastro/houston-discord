@@ -219,7 +219,7 @@ const generateReplyFromInteraction = async (
 		let urlFiles = `https://github.com/${pr_info.owner}/${pr_info.repo}/pull/${pr_info.pull_number}/files`;
 
 		let githubFilesLink = new ButtonBuilder()
-		    .setEmoji({ name: '�', animated: false, id: undefined })
+		  .setEmoji({ name: '📁', animated: false, id: undefined })
 			.setLabel('Files')
 			.setStyle(ButtonStyle.Link)
 			.setURL(urlFiles);
