@@ -216,14 +216,14 @@ const generateReplyFromInteraction = async (
 			.setURL(url);
 		components.push(githubLink);
 
-		let urlFiles = `https://github.com/${pr_info.owner}/${pr_info.repo}/pull/${pr_info.pull_number}/files`;
+		let urlFiles = `${url}/files`;
 
 		let githubFilesLink = new ButtonBuilder()
 		  .setEmoji({ name: '📁', animated: false, id: undefined })
 			.setLabel('Files')
 			.setStyle(ButtonStyle.Link)
 			.setURL(urlFiles);
-		components.push(githubLink);
+		components.push(githubFilesLink);
 
 		try {
 			let pr = await octokit.rest.pulls.get(pr_info);
