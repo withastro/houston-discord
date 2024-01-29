@@ -80,9 +80,17 @@ async function TryGetEmojiFromURL(
 		if (emoji) {
 			return { name: emoji.name!, id: emoji.id!, animated: emoji.animated! };
 		}
-	} catch {}
+	} catch { }
 
 	return { name: '❓', animated: false, id: undefined };
+}
+
+function GetStringFromEmoji(emoji: APIMessageComponentEmoji) {
+	if (emoji.id == undefined) {
+		return emoji.name;
+	}
+
+	return `<${emoji.animated ? "a" : ""}:${emoji.name}:${emoji.id}>`
 }
 
 type PullRequestState = 'PENDING' | 'REVIEWED' | 'CHANGES_REQUESTED' | 'APPROVED' | 'MERGED' | 'CLOSED';
@@ -331,7 +339,7 @@ const generateReplyFromInteraction = async (
 			break;
 		}
 
-		content += `${await TryGetEmojiFromURL(urlObject, interaction, env)} `;
+		content += `${GetStringFromEmoji(await TryGetEmojiFromURL(urlObject, interaction, env))} `;
 		content += `<${urlObject.href}>\n`;
 	}
 
@@ -427,47 +435,60 @@ const command: Command = {
 				let parts = client.interaction.data.custom_id.split('-');
 
 				if (parts[1] == 'refresh') {
-					let descriptionArray = client.interaction.message.content.split(' ');
 
-					let emoji = null;
-					if (descriptionArray[0] != '**PTAL**') {
-						emoji = descriptionArray[0];
-						descriptionArray.shift();
+					const title: string = client.interaction.message.content;
+					let description = "";
+
+					let emoji = undefined;
+					if (!title.startsWith("**PTAL**")) {
+						emoji = title.split(' ')[0];
+						description = title.split(' ').slice(2).join(' ');
+					}
+					else {
+						description = title.split(' ').slice(1).join(' ');
 					}
 
-					descriptionArray.shift();
-					let description = descriptionArray.join(' ');
+					const components: APIButtonComponent[] | APIButtonComponentWithURL[] = client.interaction.message.components![0].components;
+					let githubURL = "";
+					let deploymentURL = undefined;
 
-					const githubButton = client.interaction.message.components![0].components[0] as APIButtonComponentWithURL;
-					let otherButton = client.interaction.message.components![0].components[1] as APIButtonComponent;
-					let other: string | undefined = undefined;
-					if (otherButton.style == ButtonStyle.Link) {
-						other = otherButton.url;
+					for (let i = 0; i < components.length; i++) {
+						const component = components[i];
+
+						if (component.style == ButtonStyle.Link) {
+							if (component.label == "View on Github") {
+								githubURL = component.url;
+							}
+							else if (component.label == "View as Preview") {
+								deploymentURL = component.url;
+							}
+						}
 					}
 
+					const urlList: string = client.interaction.message.embeds[0].description;
 					let urls: string[] = [];
 
-					let desc = client.interaction.message.embeds[0].description;
-
-					let lines = desc?.split('\n')!;
-					for (let i = lines?.length - 1; i >= 0; i--) {
-						const line = lines[i].trim();
-						let words = line.split(' ');
-						if (words.at(-1)?.startsWith('<http')) {
-							urls.unshift(words.at(-1)!.substring(1, words.at(-1)!.length - 1));
-						} else {
-							break;
+					if (urlList && urlList.length > 0) {
+						const lines = urlList.split("\n");
+						if (lines.length > 0) {
+							for (let i = 0; i < lines.length; i++) {
+								const line = lines[i].trim();
+								const words = line.split(' ');
+								if (words.at(-1)?.startsWith("<http")) {
+									urls.push(words.at(-1)!.substring(1, words.at(-1)!.length - 1))
+								}
+							}
 						}
 					}
 
 					const reply = await generateReplyFromInteraction(
 						description,
-						githubButton.url,
+						githubURL,
 						client.interaction,
 						client.env,
-						other,
+						deploymentURL,
 						urls.join(','),
-						emoji ? emoji : undefined
+						emoji
 					);
 					if (!reply) return;
 
