@@ -80,7 +80,7 @@ async function TryGetEmojiFromURL(
 		if (emoji) {
 			return { name: emoji.name!, id: emoji.id!, animated: emoji.animated! };
 		}
-	} catch { }
+	} catch {}
 
 	return { name: '❓', animated: false, id: undefined };
 }
@@ -90,7 +90,7 @@ function GetStringFromEmoji(emoji: APIMessageComponentEmoji) {
 		return emoji.name;
 	}
 
-	return `<${emoji.animated ? "a" : ""}:${emoji.name}:${emoji.id}>`
+	return `<${emoji.animated ? 'a' : ''}:${emoji.name}:${emoji.id}>`;
 }
 
 type PullRequestState = 'PENDING' | 'REVIEWED' | 'CHANGES_REQUESTED' | 'APPROVED' | 'MERGED' | 'CLOSED';
@@ -435,31 +435,29 @@ const command: Command = {
 				let parts = client.interaction.data.custom_id.split('-');
 
 				if (parts[1] == 'refresh') {
-
 					const title: string = client.interaction.message.content;
-					let description = "";
+					let description = '';
 
 					let emoji = undefined;
-					if (!title.startsWith("**PTAL**")) {
+					if (!title.startsWith('**PTAL**')) {
 						emoji = title.split(' ')[0];
 						description = title.split(' ').slice(2).join(' ');
-					}
-					else {
+					} else {
 						description = title.split(' ').slice(1).join(' ');
 					}
 
-					const components: APIButtonComponent[] | APIButtonComponentWithURL[] = client.interaction.message.components![0].components;
-					let githubURL = "";
+					const components: APIButtonComponent[] | APIButtonComponentWithURL[] =
+						client.interaction.message.components![0].components;
+					let githubURL = '';
 					let deploymentURL = undefined;
 
 					for (let i = 0; i < components.length; i++) {
 						const component = components[i];
 
 						if (component.style == ButtonStyle.Link) {
-							if (component.label == "View on Github") {
+							if (component.label == 'View on Github') {
 								githubURL = component.url;
-							}
-							else if (component.label == "View as Preview") {
+							} else if (component.label == 'View as Preview') {
 								deploymentURL = component.url;
 							}
 						}
@@ -469,13 +467,13 @@ const command: Command = {
 					let urls: string[] = [];
 
 					if (urlList && urlList.length > 0) {
-						const lines = urlList.split("\n");
+						const lines = urlList.split('\n');
 						if (lines.length > 0) {
 							for (let i = 0; i < lines.length; i++) {
 								const line = lines[i].trim();
 								const words = line.split(' ');
-								if (words.at(-1)?.startsWith("<http")) {
-									urls.push(words.at(-1)!.substring(1, words.at(-1)!.length - 1))
+								if (words.at(-1)?.startsWith('<http')) {
+									urls.push(words.at(-1)!.substring(1, words.at(-1)!.length - 1));
 								}
 							}
 						}
