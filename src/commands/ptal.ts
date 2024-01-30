@@ -227,7 +227,7 @@ const generateReplyFromInteraction = async (
 		let urlFiles = `${url}/files`;
 
 		let githubFilesLink = new ButtonBuilder()
-		  .setEmoji({ name: '📁', animated: false, id: undefined })
+			.setEmoji({ name: '📁', animated: false, id: undefined })
 			.setLabel('Files')
 			.setStyle(ButtonStyle.Link)
 			.setURL(urlFiles);
