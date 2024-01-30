@@ -224,6 +224,15 @@ const generateReplyFromInteraction = async (
 			.setURL(url);
 		components.push(githubLink);
 
+		let urlFiles = `${url}/files`;
+
+		let githubFilesLink = new ButtonBuilder()
+		  .setEmoji({ name: '📁', animated: false, id: undefined })
+			.setLabel('Files')
+			.setStyle(ButtonStyle.Link)
+			.setURL(urlFiles);
+		components.push(githubFilesLink);
+
 		try {
 			let pr = await octokit.rest.pulls.get(pr_info);
 			embed.setAuthor({ name: pr.data.user.login, iconURL: `https://github.com/${pr.data.user.login}.png` });
