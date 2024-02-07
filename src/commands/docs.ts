@@ -145,7 +145,7 @@ const command: Command = {
 	},
 	async execute(client) {
 		client.ctx.waitUntil(
-			new Promise(async (resolve) => {
+			async () => {
 				let query = getStringOption(client.interaction.data, 'query')!;
 
 				if (query.startsWith('auto-')) {
@@ -285,8 +285,8 @@ const command: Command = {
 						embeds: embeds.map((embed) => embed.toJSON()),
 					},
 				});
-				resolve(true);
-			})
+				return true;
+			}
 		);
 
 		return client.deferReply();
