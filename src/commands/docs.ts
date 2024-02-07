@@ -144,150 +144,148 @@ const command: Command = {
 		return true;
 	},
 	async execute(client) {
-		client.ctx.waitUntil(
-			async () => {
-				let query = getStringOption(client.interaction.data, 'query')!;
+		client.ctx.waitUntil(async () => {
+			let query = getStringOption(client.interaction.data, 'query')!;
 
-				if (query.startsWith('auto-')) {
-					const reply: SearchHit = await index.getObject(query.substring(5));
-					await returnObjectResult(client.interaction, reply, client.env);
-					return;
-				}
-
-				if (query.startsWith('user-')) {
-					query = query.substring(5);
-				}
-
-				const reply = await index.search<SearchHit>(query, {
-					facetFilters: [['lang:' + (getStringOption(client.interaction.data, 'language') ?? 'en')]],
-					highlightPreTag: '**',
-					highlightPostTag: '**',
-					hitsPerPage: 20,
-					snippetEllipsisText: '…',
-					attributesToRetrieve: [
-						'hierarchy.lvl0',
-						'hierarchy.lvl1',
-						'hierarchy.lvl2',
-						'hierarchy.lvl3',
-						'hierarchy.lvl4',
-						'hierarchy.lvl5',
-						'hierarchy.lvl6',
-						'content',
-						'type',
-						'url',
-					],
-					attributesToSnippet: [
-						'hierarchy.lvl1:10',
-						'hierarchy.lvl2:10',
-						'hierarchy.lvl3:10',
-						'hierarchy.lvl4:10',
-						'hierarchy.lvl5:10',
-						'hierarchy.lvl6:10',
-						'content:10',
-					],
-				});
-
-				console.log(reply);
-
-				const items = reply.hits.map((hit) => {
-					const url = new URL(hit.url);
-					if (url.hash == '#overview') url.hash = '';
-
-					return {
-						...hit,
-						url: url.href,
-					};
-				});
-
-				const categories: categories = {};
-
-				items.forEach((item) => {
-					if (!categories[item.hierarchy.lvl0]) {
-						categories[item.hierarchy.lvl0] = [];
-					}
-					categories[item.hierarchy.lvl0].push(item);
-				});
-
-				// exclude tutorials
-				delete categories['Tutorials'];
-
-				const embeds: EmbedBuilder[] = [];
-
-				console.log(embeds);
-
-				embeds.push(getDefaultEmbed().setTitle(`Results for "${query}"`));
-
-				for (const category in categories) {
-					const embed = getDefaultEmbed().setTitle(decode(category));
-
-					let body = '';
-
-					let items: { [heading: string]: SearchHit[] } = {};
-
-					for (let i = 0; i < categories[category].length && i < 5; i++) {
-						const item = categories[category][i];
-						if (!item._snippetResult) return;
-
-						if (!items[item.hierarchy[`lvl1`]]) {
-							items[item.hierarchy[`lvl1`]] = [];
-						}
-
-						items[item.hierarchy[`lvl1`]].push(item);
-					}
-
-					for (const subjectName in items) {
-						const subject = items[subjectName];
-
-						for (let i = 0; i < subject.length; i++) {
-							const item = subject[i];
-
-							let hierarchy = '';
-
-							for (let i = 1; i < 7; i++) {
-								if (item.hierarchy[`lvl${i}`]) {
-									let string = i != 1 ? ' > ' : '';
-
-									string += item.hierarchy[`lvl${i}`];
-
-									hierarchy += string;
-								} else {
-									break;
-								}
-							}
-
-							let result = '';
-
-							if (item._snippetResult) {
-								if (item.type == 'content') {
-									result = item._snippetResult.content.value;
-								} else {
-									result = item._snippetResult.hierarchy[item.type].value;
-								}
-
-								body += decode(`[🔗](${item.url}) **${hierarchy}**\n`);
-								body += decode(`[${result.substring(0, 66)}](${item.url})\n`);
-							}
-						}
-					}
-
-					embed.setDescription(body);
-
-					embeds.push(embed);
-				}
-
-				if (embeds.length == 1) {
-					embeds[0].setTitle(`No results found for "${query}"`);
-				}
-
-				await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
-					body: {
-						type: InteractionResponseType.UpdateMessage,
-						embeds: embeds.map((embed) => embed.toJSON()),
-					},
-				});
-				return true;
+			if (query.startsWith('auto-')) {
+				const reply: SearchHit = await index.getObject(query.substring(5));
+				await returnObjectResult(client.interaction, reply, client.env);
+				return;
 			}
-		);
+
+			if (query.startsWith('user-')) {
+				query = query.substring(5);
+			}
+
+			const reply = await index.search<SearchHit>(query, {
+				facetFilters: [['lang:' + (getStringOption(client.interaction.data, 'language') ?? 'en')]],
+				highlightPreTag: '**',
+				highlightPostTag: '**',
+				hitsPerPage: 20,
+				snippetEllipsisText: '…',
+				attributesToRetrieve: [
+					'hierarchy.lvl0',
+					'hierarchy.lvl1',
+					'hierarchy.lvl2',
+					'hierarchy.lvl3',
+					'hierarchy.lvl4',
+					'hierarchy.lvl5',
+					'hierarchy.lvl6',
+					'content',
+					'type',
+					'url',
+				],
+				attributesToSnippet: [
+					'hierarchy.lvl1:10',
+					'hierarchy.lvl2:10',
+					'hierarchy.lvl3:10',
+					'hierarchy.lvl4:10',
+					'hierarchy.lvl5:10',
+					'hierarchy.lvl6:10',
+					'content:10',
+				],
+			});
+
+			console.log(reply);
+
+			const items = reply.hits.map((hit) => {
+				const url = new URL(hit.url);
+				if (url.hash == '#overview') url.hash = '';
+
+				return {
+					...hit,
+					url: url.href,
+				};
+			});
+
+			const categories: categories = {};
+
+			items.forEach((item) => {
+				if (!categories[item.hierarchy.lvl0]) {
+					categories[item.hierarchy.lvl0] = [];
+				}
+				categories[item.hierarchy.lvl0].push(item);
+			});
+
+			// exclude tutorials
+			delete categories['Tutorials'];
+
+			const embeds: EmbedBuilder[] = [];
+
+			console.log(embeds);
+
+			embeds.push(getDefaultEmbed().setTitle(`Results for "${query}"`));
+
+			for (const category in categories) {
+				const embed = getDefaultEmbed().setTitle(decode(category));
+
+				let body = '';
+
+				let items: { [heading: string]: SearchHit[] } = {};
+
+				for (let i = 0; i < categories[category].length && i < 5; i++) {
+					const item = categories[category][i];
+					if (!item._snippetResult) return;
+
+					if (!items[item.hierarchy[`lvl1`]]) {
+						items[item.hierarchy[`lvl1`]] = [];
+					}
+
+					items[item.hierarchy[`lvl1`]].push(item);
+				}
+
+				for (const subjectName in items) {
+					const subject = items[subjectName];
+
+					for (let i = 0; i < subject.length; i++) {
+						const item = subject[i];
+
+						let hierarchy = '';
+
+						for (let i = 1; i < 7; i++) {
+							if (item.hierarchy[`lvl${i}`]) {
+								let string = i != 1 ? ' > ' : '';
+
+								string += item.hierarchy[`lvl${i}`];
+
+								hierarchy += string;
+							} else {
+								break;
+							}
+						}
+
+						let result = '';
+
+						if (item._snippetResult) {
+							if (item.type == 'content') {
+								result = item._snippetResult.content.value;
+							} else {
+								result = item._snippetResult.hierarchy[item.type].value;
+							}
+
+							body += decode(`[🔗](${item.url}) **${hierarchy}**\n`);
+							body += decode(`[${result.substring(0, 66)}](${item.url})\n`);
+						}
+					}
+				}
+
+				embed.setDescription(body);
+
+				embeds.push(embed);
+			}
+
+			if (embeds.length == 1) {
+				embeds[0].setTitle(`No results found for "${query}"`);
+			}
+
+			await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
+				body: {
+					type: InteractionResponseType.UpdateMessage,
+					embeds: embeds.map((embed) => embed.toJSON()),
+				},
+			});
+			return true;
+		});
 
 		return client.deferReply();
 	},
