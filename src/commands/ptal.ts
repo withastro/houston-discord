@@ -413,110 +413,114 @@ const command: Command = {
 	},
 	async execute(client) {
 		// Deferred async code can not be moved outside of a Promise
-		return client.deferReply(new Promise(async (resolve) => {
-			const reply = await generateReplyFromInteraction(
-				getStringOption(client.interaction.data, 'description')!,
-				getStringOption(client.interaction.data, 'github')!,
-				client.interaction,
-				client.env,
-				getStringOption(client.interaction.data, 'deployment'),
-				getStringOption(client.interaction.data, 'other'),
-				getStringOption(client.interaction.data, 'type')
-			);
-			if (!reply) resolve(false);
-
-			await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
-				body: {
-					type: InteractionResponseType.UpdateMessage,
-					allowed_mentions: {
-						parse: ['users', 'roles'],
-					},
-					...reply,
-				},
-			});
-			resolve(true);
-		}));
-	},
-	async button(client) {
-		// Deferred async code can not be moved outside of a Promise
-		client.ctx.waitUntil(new Promise(async (resolve) => {
-			let parts = client.interaction.data.custom_id.split('-');
-
-			if (parts[1] == 'refresh') {
-				const title: string = client.interaction.message.content;
-				let description = '';
-
-				let emoji = undefined;
-				if (!title.startsWith('**PTAL**')) {
-					emoji = title.split(' ')[0];
-					description = title.split(' ').slice(2).join(' ');
-				} else {
-					description = title.split(' ').slice(1).join(' ');
-				}
-
-				const components: APIButtonComponent[] | APIButtonComponentWithURL[] =
-					client.interaction.message.components![0].components;
-				let githubURL = '';
-				let deploymentURL = undefined;
-
-				for (let i = 0; i < components.length; i++) {
-					const component = components[i];
-
-					if (component.style == ButtonStyle.Link) {
-						if (component.label == 'View on Github') {
-							githubURL = component.url;
-						} else if (component.label == 'View as Preview') {
-							deploymentURL = component.url;
-						}
-					}
-				}
-
-				const urlList: string = client.interaction.message.embeds[0].description;
-				let urls: string[] = [];
-
-				if (urlList && urlList.length > 0) {
-					const lines = urlList.split('\n');
-					if (lines.length > 0) {
-						for (let i = 0; i < lines.length; i++) {
-							const line = lines[i].trim();
-							const words = line.split(' ');
-							if (words.at(-1)?.startsWith('<http')) {
-								urls.push(words.at(-1)!.substring(1, words.at(-1)!.length - 1));
-							}
-						}
-					}
-				}
-
+		return client.deferReply(
+			new Promise(async (resolve) => {
 				const reply = await generateReplyFromInteraction(
-					description,
-					githubURL,
+					getStringOption(client.interaction.data, 'description')!,
+					getStringOption(client.interaction.data, 'github')!,
 					client.interaction,
 					client.env,
-					deploymentURL,
-					urls.join(','),
-					emoji
+					getStringOption(client.interaction.data, 'deployment'),
+					getStringOption(client.interaction.data, 'other'),
+					getStringOption(client.interaction.data, 'type')
 				);
 				if (!reply) resolve(false);
 
-				try {
-					await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token), {
-						body: {
-							content: reply.content,
-							embeds: reply.embeds,
-							components: reply.components,
+				await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
+					body: {
+						type: InteractionResponseType.UpdateMessage,
+						allowed_mentions: {
+							parse: ['users', 'roles'],
 						},
-					});
-				} catch (exception) {
-					console.error(exception);
-					await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token), {
-						body: {
-							content: 'Something went wrong while updating your /ptal request!',
-						},
-					});
+						...reply,
+					},
+				});
+				resolve(true);
+			})
+		);
+	},
+	async button(client) {
+		// Deferred async code can not be moved outside of a Promise
+		client.ctx.waitUntil(
+			new Promise(async (resolve) => {
+				let parts = client.interaction.data.custom_id.split('-');
+
+				if (parts[1] == 'refresh') {
+					const title: string = client.interaction.message.content;
+					let description = '';
+
+					let emoji = undefined;
+					if (!title.startsWith('**PTAL**')) {
+						emoji = title.split(' ')[0];
+						description = title.split(' ').slice(2).join(' ');
+					} else {
+						description = title.split(' ').slice(1).join(' ');
+					}
+
+					const components: APIButtonComponent[] | APIButtonComponentWithURL[] =
+						client.interaction.message.components![0].components;
+					let githubURL = '';
+					let deploymentURL = undefined;
+
+					for (let i = 0; i < components.length; i++) {
+						const component = components[i];
+
+						if (component.style == ButtonStyle.Link) {
+							if (component.label == 'View on Github') {
+								githubURL = component.url;
+							} else if (component.label == 'View as Preview') {
+								deploymentURL = component.url;
+							}
+						}
+					}
+
+					const urlList: string = client.interaction.message.embeds[0].description;
+					let urls: string[] = [];
+
+					if (urlList && urlList.length > 0) {
+						const lines = urlList.split('\n');
+						if (lines.length > 0) {
+							for (let i = 0; i < lines.length; i++) {
+								const line = lines[i].trim();
+								const words = line.split(' ');
+								if (words.at(-1)?.startsWith('<http')) {
+									urls.push(words.at(-1)!.substring(1, words.at(-1)!.length - 1));
+								}
+							}
+						}
+					}
+
+					const reply = await generateReplyFromInteraction(
+						description,
+						githubURL,
+						client.interaction,
+						client.env,
+						deploymentURL,
+						urls.join(','),
+						emoji
+					);
+					if (!reply) resolve(false);
+
+					try {
+						await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token), {
+							body: {
+								content: reply.content,
+								embeds: reply.embeds,
+								components: reply.components,
+							},
+						});
+					} catch (exception) {
+						console.error(exception);
+						await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token), {
+							body: {
+								content: 'Something went wrong while updating your /ptal request!',
+							},
+						});
+					}
 				}
-			}
-			resolve(true);
-		}));
+				resolve(true);
+			})
+		);
 
 		return client.deferUpdate();
 	},
