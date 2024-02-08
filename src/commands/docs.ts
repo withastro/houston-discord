@@ -144,7 +144,8 @@ const command: Command = {
 		return true;
 	},
 	async execute(client) {
-		client.ctx.waitUntil(async () => {
+		// Deferred async code can not be moved outside of a Promise
+		client.ctx.waitUntil(new Promise(async (resolve) => {
 			let query = getStringOption(client.interaction.data, 'query')!;
 
 			if (query.startsWith('auto-')) {
@@ -284,8 +285,8 @@ const command: Command = {
 					embeds: embeds.map((embed) => embed.toJSON()),
 				},
 			});
-			return true;
-		});
+			resolve(true);
+		}));
 
 		return client.deferReply();
 	},
