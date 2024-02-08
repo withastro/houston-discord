@@ -145,7 +145,8 @@ const command: Command = {
 	},
 	async execute(client) {
 		client.ctx.waitUntil(
-			async () => {
+			// Async code can not be removed from promise.
+			new Promise(async (resolve) => {
 				let query = getStringOption(client.interaction.data, 'query')!;
 
 				if (query.startsWith('auto-')) {
@@ -285,8 +286,8 @@ const command: Command = {
 						embeds: embeds.map((embed) => embed.toJSON()),
 					},
 				});
-				return true;
-			}
+				resolve(true);
+			})
 		);
 
 		return client.deferReply();

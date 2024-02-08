@@ -413,7 +413,8 @@ const command: Command = {
 	},
 	async execute(client) {
 		return client.deferReply(
-			async () => {
+			// Async code can not be removed from promise.
+			new Promise(async (resolve) => {
 				const reply = await generateReplyFromInteraction(
 					getStringOption(client.interaction.data, 'description')!,
 					getStringOption(client.interaction.data, 'github')!,
@@ -423,7 +424,7 @@ const command: Command = {
 					getStringOption(client.interaction.data, 'other'),
 					getStringOption(client.interaction.data, 'type')
 				);
-				if (!reply) return false;
+				if (!reply) resolve(false);
 
 				await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
 					body: {
@@ -434,13 +435,14 @@ const command: Command = {
 						...reply,
 					},
 				});
-				return true;
-			}
+				resolve(true);
+			})
 		);
 	},
 	async button(client) {
 		client.ctx.waitUntil(
-			async () => {
+			// Async code can not be removed from promise.
+			new Promise(async (resolve) => {
 				let parts = client.interaction.data.custom_id.split('-');
 
 				if (parts[1] == 'refresh') {
@@ -516,8 +518,8 @@ const command: Command = {
 						});
 					}
 				}
-				return true;
-			}
+				resolve(true);
+			})
 		);
 
 		return client.deferUpdate();
