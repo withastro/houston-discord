@@ -145,7 +145,6 @@ const command: Command = {
 		return true;
 	},
 	async execute(client) {
-		console.log(getBooleanOption(client.interaction.data, "hidden"));
 		return client.deferReply({hidden: getBooleanOption(client.interaction.data, "hidden")}, async () => {
 			let query = getStringOption(client.interaction.data, 'query')!;
 
