@@ -80,7 +80,7 @@ async function TryGetEmojiFromURL(
 		if (emoji) {
 			return { name: emoji.name!, id: emoji.id!, animated: emoji.animated! };
 		}
-	} catch { }
+	} catch {}
 
 	return { name: '❓', animated: false, id: undefined };
 }
@@ -439,86 +439,84 @@ const command: Command = {
 		);
 	},
 	async button(client) {
-		client.waitUntil(
-			async () => {
-				let parts = client.interaction.data.custom_id.split('-');
+		client.waitUntil(async () => {
+			let parts = client.interaction.data.custom_id.split('-');
 
-				if (parts[1] == 'refresh') {
-					const title: string = client.interaction.message.content;
-					let description = '';
+			if (parts[1] == 'refresh') {
+				const title: string = client.interaction.message.content;
+				let description = '';
 
-					let emoji = undefined;
-					if (!title.startsWith('**PTAL**')) {
-						emoji = title.split(' ')[0];
-						description = title.split(' ').slice(2).join(' ');
-					} else {
-						description = title.split(' ').slice(1).join(' ');
-					}
+				let emoji = undefined;
+				if (!title.startsWith('**PTAL**')) {
+					emoji = title.split(' ')[0];
+					description = title.split(' ').slice(2).join(' ');
+				} else {
+					description = title.split(' ').slice(1).join(' ');
+				}
 
-					const components: APIButtonComponent[] | APIButtonComponentWithURL[] =
-						client.interaction.message.components![0].components;
-					let githubURL = '';
-					let deploymentURL = undefined;
+				const components: APIButtonComponent[] | APIButtonComponentWithURL[] =
+					client.interaction.message.components![0].components;
+				let githubURL = '';
+				let deploymentURL = undefined;
 
-					for (let i = 0; i < components.length; i++) {
-						const component = components[i];
+				for (let i = 0; i < components.length; i++) {
+					const component = components[i];
 
-						if (component.style == ButtonStyle.Link) {
-							if (component.label == 'View on Github') {
-								githubURL = component.url;
-							} else if (component.label == 'View as Preview') {
-								deploymentURL = component.url;
-							}
+					if (component.style == ButtonStyle.Link) {
+						if (component.label == 'View on Github') {
+							githubURL = component.url;
+						} else if (component.label == 'View as Preview') {
+							deploymentURL = component.url;
 						}
-					}
-
-					const urlList: string = client.interaction.message.embeds[0].description;
-					let urls: string[] = [];
-
-					if (urlList && urlList.length > 0) {
-						const lines = urlList.split('\n');
-						if (lines.length > 0) {
-							for (let i = 0; i < lines.length; i++) {
-								const line = lines[i].trim();
-								const words = line.split(' ');
-								if (words.at(-1)?.startsWith('<http')) {
-									urls.push(words.at(-1)!.substring(1, words.at(-1)!.length - 1));
-								}
-							}
-						}
-					}
-
-					const reply = await generateReplyFromInteraction(
-						description,
-						githubURL,
-						client.interaction,
-						client.env,
-						deploymentURL,
-						urls.join(','),
-						emoji
-					);
-					if (!reply) return false;
-
-					try {
-						await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token), {
-							body: {
-								content: reply.content,
-								embeds: reply.embeds,
-								components: reply.components,
-							},
-						});
-					} catch (exception) {
-						console.error(exception);
-						await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token), {
-							body: {
-								content: 'Something went wrong while updating your /ptal request!',
-							},
-						});
 					}
 				}
-				return true;
+
+				const urlList: string = client.interaction.message.embeds[0].description;
+				let urls: string[] = [];
+
+				if (urlList && urlList.length > 0) {
+					const lines = urlList.split('\n');
+					if (lines.length > 0) {
+						for (let i = 0; i < lines.length; i++) {
+							const line = lines[i].trim();
+							const words = line.split(' ');
+							if (words.at(-1)?.startsWith('<http')) {
+								urls.push(words.at(-1)!.substring(1, words.at(-1)!.length - 1));
+							}
+						}
+					}
+				}
+
+				const reply = await generateReplyFromInteraction(
+					description,
+					githubURL,
+					client.interaction,
+					client.env,
+					deploymentURL,
+					urls.join(','),
+					emoji
+				);
+				if (!reply) return false;
+
+				try {
+					await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token), {
+						body: {
+							content: reply.content,
+							embeds: reply.embeds,
+							components: reply.components,
+						},
+					});
+				} catch (exception) {
+					console.error(exception);
+					await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token), {
+						body: {
+							content: 'Something went wrong while updating your /ptal request!',
+						},
+					});
+				}
 			}
-		);
+			return true;
+		});
 
 		return client.deferUpdate();
 	},
