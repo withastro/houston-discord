@@ -439,8 +439,8 @@ const command: Command = {
 		);
 	},
 	async button(client) {
-		client.ctx.waitUntil(
-			(async () => {
+		client.waitUntil(
+			async () => {
 				let parts = client.interaction.data.custom_id.split('-');
 
 				if (parts[1] == 'refresh') {
@@ -517,7 +517,7 @@ const command: Command = {
 					}
 				}
 				return true;
-			})()
+			}
 		);
 
 		return client.deferUpdate();

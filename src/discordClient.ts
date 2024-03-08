@@ -32,6 +32,11 @@ export class InteractionClient<Type extends InteractionType> extends DiscordClie
 		this.interaction = interaction;
 	}
 
+	waitUntil(code: () => Promise<undefined>)
+	{
+		this.ctx.waitUntil(code());
+	}
+
 	deferReply(promise?: Promise<any>): DiscordResponse {
 		if (promise) {
 			this.ctx.waitUntil(promise);

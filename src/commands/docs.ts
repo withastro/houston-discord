@@ -144,7 +144,7 @@ const command: Command = {
 		return true;
 	},
 	async execute(client) {
-		client.ctx.waitUntil((async () => {
+		client.waitUntil(async () => {
 			let query = getStringOption(client.interaction.data, 'query')!;
 
 			if (query.startsWith('auto-')) {
@@ -285,7 +285,7 @@ const command: Command = {
 				},
 			});
 			return true;
-		})());
+		});
 
 		return client.deferReply();
 	},
