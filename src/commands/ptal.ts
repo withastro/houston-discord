@@ -412,7 +412,7 @@ const command: Command = {
 		return true;
 	},
 	async execute(client) {
-		return client.deferReply(
+		return client.deferReply({}, 
 			(async () => {
 				const reply = await generateReplyFromInteraction(
 					getStringOption(client.interaction.data, 'description')!,
@@ -435,11 +435,11 @@ const command: Command = {
 					},
 				});
 				return true;
-			})()
+			})
 		);
 	},
 	async button(client) {
-		client.waitUntil(
+		return client.deferUpdate(
 			async () => {
 				let parts = client.interaction.data.custom_id.split('-');
 
@@ -519,8 +519,6 @@ const command: Command = {
 				return true;
 			}
 		);
-
-		return client.deferUpdate();
 	},
 };
 

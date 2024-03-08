@@ -1,4 +1,4 @@
-import { APIBaseInteraction, InteractionResponseType, InteractionType } from 'discord-api-types/v10';
+import { APIBaseInteraction, InteractionResponseType, InteractionType, MessageFlags } from 'discord-api-types/v10';
 import { Env } from '.';
 
 class DiscordResponse extends Response {
@@ -23,8 +23,12 @@ export class DiscordClient {
 	}
 }
 
-export class InteractionClient<Type extends InteractionType> extends DiscordClient {
-	interaction: APIBaseInteraction<Type, any>;
+export type DeferOptions = {
+	hidden?: boolean
+}
+
+export class InteractionClient<Type extends InteractionType, Data> extends DiscordClient {
+	interaction: APIBaseInteraction<Type, Data>;
 
 	constructor(interaction: APIBaseInteraction<Type, any>, env: Env, ctx: ExecutionContext) {
 		super(env, ctx);
@@ -32,24 +36,27 @@ export class InteractionClient<Type extends InteractionType> extends DiscordClie
 		this.interaction = interaction;
 	}
 
-	waitUntil(code: () => Promise<undefined>)
-	{
-		this.ctx.waitUntil(code());
-	}
-
-	deferReply(promise?: Promise<any>): DiscordResponse {
+	deferReply(options: DeferOptions, promise?: () => Promise<any>): DiscordResponse {
 		if (promise) {
-			this.ctx.waitUntil(promise);
+			this.ctx.waitUntil(promise());
+		}
+
+		let data: any = {};
+
+		if(options.hidden)
+		{
+			data.flags = MessageFlags.Ephemeral;
 		}
 
 		return new DiscordResponse({
 			type: InteractionResponseType.DeferredChannelMessageWithSource,
+			data
 		});
 	}
 
-	deferUpdate(promise?: Promise<any>): DiscordResponse {
+	deferUpdate(promise?: () => Promise<any>): DiscordResponse {
 		if (promise) {
-			this.ctx.waitUntil(promise);
+			this.ctx.waitUntil(promise());
 		}
 
 		return new DiscordResponse({

@@ -2,12 +2,13 @@ import { createFetchRequester } from '@algolia/requester-fetch';
 import { EmbedBuilder, SlashCommandBuilder } from '@discordjs/builders';
 import { REST } from '@discordjs/rest';
 import algoliasearch, { SearchClient, SearchIndex } from 'algoliasearch';
-import { APIChatInputApplicationCommandInteraction, InteractionResponseType, Routes } from 'discord-api-types/v10';
+import { APIChatInputApplicationCommandInteraction, InteractionResponseType, Routes, InteractionType } from 'discord-api-types/v10';
 import { decode } from 'html-entities';
 import { Env } from '..';
 import { categories, Command, SearchHit } from '../types';
-import { getStringOption } from '../utils/discordUtils.js';
+import { getBooleanOption, getStringOption } from '../utils/discordUtils.js';
 import { getDefaultEmbed } from '../utils/embeds.js';
+import { InteractionClient } from '../discordClient';
 
 let searchClient: SearchClient;
 let index: SearchIndex;
@@ -144,7 +145,8 @@ const command: Command = {
 		return true;
 	},
 	async execute(client) {
-		client.waitUntil(async () => {
+		console.log(getBooleanOption(client.interaction.data, "hidden"));
+		return client.deferReply({hidden: getBooleanOption(client.interaction.data, "hidden")}, async () => {
 			let query = getStringOption(client.interaction.data, 'query')!;
 
 			if (query.startsWith('auto-')) {
@@ -185,8 +187,6 @@ const command: Command = {
 					'content:10',
 				],
 			});
-
-			console.log(reply);
 
 			const items = reply.hits.map((hit) => {
 				const url = new URL(hit.url);
@@ -286,8 +286,6 @@ const command: Command = {
 			});
 			return true;
 		});
-
-		return client.deferReply();
 	},
 	async autocomplete(client) {
 		const query = getStringOption(client.interaction.data, 'query')!;
