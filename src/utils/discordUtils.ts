@@ -32,11 +32,11 @@ export function getStringOption(data: APIChatInputApplicationCommandInteractionD
 }
 
 export function getBooleanOption(data: APIChatInputApplicationCommandInteractionData, name: string) {
-	if (!data.options) return undefined;
+	if (!data.options) return false;
 
 	let option: APIApplicationCommandInteractionDataBooleanOption | undefined = data.options.find((option) => {
 		return option.name == name && option.type == ApplicationCommandOptionType.Boolean;
 	}) as APIApplicationCommandInteractionDataBooleanOption | undefined;
 
-	return option?.value;
+	return option?.value || false;
 }
