@@ -144,151 +144,148 @@ const command: Command = {
 		return true;
 	},
 	async execute(client) {
-		// Deferred async code can not be moved outside of a Promise
-		client.ctx.waitUntil(
-			new Promise(async (resolve) => {
-				let query = getStringOption(client.interaction.data, 'query')!;
+		client.waitUntil(async () => {
+			let query = getStringOption(client.interaction.data, 'query')!;
 
-				if (query.startsWith('auto-')) {
-					const reply: SearchHit = await index.getObject(query.substring(5));
-					await returnObjectResult(client.interaction, reply, client.env);
-					return;
+			if (query.startsWith('auto-')) {
+				const reply: SearchHit = await index.getObject(query.substring(5));
+				await returnObjectResult(client.interaction, reply, client.env);
+				return;
+			}
+
+			if (query.startsWith('user-')) {
+				query = query.substring(5);
+			}
+
+			const reply = await index.search<SearchHit>(query, {
+				facetFilters: [['lang:' + (getStringOption(client.interaction.data, 'language') ?? 'en')]],
+				highlightPreTag: '**',
+				highlightPostTag: '**',
+				hitsPerPage: 20,
+				snippetEllipsisText: '…',
+				attributesToRetrieve: [
+					'hierarchy.lvl0',
+					'hierarchy.lvl1',
+					'hierarchy.lvl2',
+					'hierarchy.lvl3',
+					'hierarchy.lvl4',
+					'hierarchy.lvl5',
+					'hierarchy.lvl6',
+					'content',
+					'type',
+					'url',
+				],
+				attributesToSnippet: [
+					'hierarchy.lvl1:10',
+					'hierarchy.lvl2:10',
+					'hierarchy.lvl3:10',
+					'hierarchy.lvl4:10',
+					'hierarchy.lvl5:10',
+					'hierarchy.lvl6:10',
+					'content:10',
+				],
+			});
+
+			console.log(reply);
+
+			const items = reply.hits.map((hit) => {
+				const url = new URL(hit.url);
+				if (url.hash == '#overview') url.hash = '';
+
+				return {
+					...hit,
+					url: url.href,
+				};
+			});
+
+			const categories: categories = {};
+
+			items.forEach((item) => {
+				if (!categories[item.hierarchy.lvl0]) {
+					categories[item.hierarchy.lvl0] = [];
 				}
+				categories[item.hierarchy.lvl0].push(item);
+			});
 
-				if (query.startsWith('user-')) {
-					query = query.substring(5);
-				}
+			// exclude tutorials
+			delete categories['Tutorials'];
 
-				const reply = await index.search<SearchHit>(query, {
-					facetFilters: [['lang:' + (getStringOption(client.interaction.data, 'language') ?? 'en')]],
-					highlightPreTag: '**',
-					highlightPostTag: '**',
-					hitsPerPage: 20,
-					snippetEllipsisText: '…',
-					attributesToRetrieve: [
-						'hierarchy.lvl0',
-						'hierarchy.lvl1',
-						'hierarchy.lvl2',
-						'hierarchy.lvl3',
-						'hierarchy.lvl4',
-						'hierarchy.lvl5',
-						'hierarchy.lvl6',
-						'content',
-						'type',
-						'url',
-					],
-					attributesToSnippet: [
-						'hierarchy.lvl1:10',
-						'hierarchy.lvl2:10',
-						'hierarchy.lvl3:10',
-						'hierarchy.lvl4:10',
-						'hierarchy.lvl5:10',
-						'hierarchy.lvl6:10',
-						'content:10',
-					],
-				});
+			const embeds: EmbedBuilder[] = [];
 
-				console.log(reply);
+			console.log(embeds);
 
-				const items = reply.hits.map((hit) => {
-					const url = new URL(hit.url);
-					if (url.hash == '#overview') url.hash = '';
+			embeds.push(getDefaultEmbed().setTitle(`Results for "${query}"`));
 
-					return {
-						...hit,
-						url: url.href,
-					};
-				});
+			for (const category in categories) {
+				const embed = getDefaultEmbed().setTitle(decode(category));
 
-				const categories: categories = {};
+				let body = '';
 
-				items.forEach((item) => {
-					if (!categories[item.hierarchy.lvl0]) {
-						categories[item.hierarchy.lvl0] = [];
-					}
-					categories[item.hierarchy.lvl0].push(item);
-				});
+				let items: { [heading: string]: SearchHit[] } = {};
 
-				// exclude tutorials
-				delete categories['Tutorials'];
+				for (let i = 0; i < categories[category].length && i < 5; i++) {
+					const item = categories[category][i];
+					if (!item._snippetResult) return;
 
-				const embeds: EmbedBuilder[] = [];
-
-				console.log(embeds);
-
-				embeds.push(getDefaultEmbed().setTitle(`Results for "${query}"`));
-
-				for (const category in categories) {
-					const embed = getDefaultEmbed().setTitle(decode(category));
-
-					let body = '';
-
-					let items: { [heading: string]: SearchHit[] } = {};
-
-					for (let i = 0; i < categories[category].length && i < 5; i++) {
-						const item = categories[category][i];
-						if (!item._snippetResult) return;
-
-						if (!items[item.hierarchy[`lvl1`]]) {
-							items[item.hierarchy[`lvl1`]] = [];
-						}
-
-						items[item.hierarchy[`lvl1`]].push(item);
+					if (!items[item.hierarchy[`lvl1`]]) {
+						items[item.hierarchy[`lvl1`]] = [];
 					}
 
-					for (const subjectName in items) {
-						const subject = items[subjectName];
+					items[item.hierarchy[`lvl1`]].push(item);
+				}
 
-						for (let i = 0; i < subject.length; i++) {
-							const item = subject[i];
+				for (const subjectName in items) {
+					const subject = items[subjectName];
 
-							let hierarchy = '';
+					for (let i = 0; i < subject.length; i++) {
+						const item = subject[i];
 
-							for (let i = 1; i < 7; i++) {
-								if (item.hierarchy[`lvl${i}`]) {
-									let string = i != 1 ? ' > ' : '';
+						let hierarchy = '';
 
-									string += item.hierarchy[`lvl${i}`];
+						for (let i = 1; i < 7; i++) {
+							if (item.hierarchy[`lvl${i}`]) {
+								let string = i != 1 ? ' > ' : '';
 
-									hierarchy += string;
-								} else {
-									break;
-								}
-							}
+								string += item.hierarchy[`lvl${i}`];
 
-							let result = '';
-
-							if (item._snippetResult) {
-								if (item.type == 'content') {
-									result = item._snippetResult.content.value;
-								} else {
-									result = item._snippetResult.hierarchy[item.type].value;
-								}
-
-								body += decode(`[🔗](${item.url}) **${hierarchy}**\n`);
-								body += decode(`[${result.substring(0, 66)}](${item.url})\n`);
+								hierarchy += string;
+							} else {
+								break;
 							}
 						}
+
+						let result = '';
+
+						if (item._snippetResult) {
+							if (item.type == 'content') {
+								result = item._snippetResult.content.value;
+							} else {
+								result = item._snippetResult.hierarchy[item.type].value;
+							}
+
+							body += decode(`[🔗](${item.url}) **${hierarchy}**\n`);
+							body += decode(`[${result.substring(0, 66)}](${item.url})\n`);
+						}
 					}
-
-					embed.setDescription(body);
-
-					embeds.push(embed);
 				}
 
-				if (embeds.length == 1) {
-					embeds[0].setTitle(`No results found for "${query}"`);
-				}
+				embed.setDescription(body);
 
-				await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
-					body: {
-						type: InteractionResponseType.UpdateMessage,
-						embeds: embeds.map((embed) => embed.toJSON()),
-					},
-				});
-				resolve(true);
-			})
-		);
+				embeds.push(embed);
+			}
+
+			if (embeds.length == 1) {
+				embeds[0].setTitle(`No results found for "${query}"`);
+			}
+
+			await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
+				body: {
+					type: InteractionResponseType.UpdateMessage,
+					embeds: embeds.map((embed) => embed.toJSON()),
+				},
+			});
+			return true;
+		});
 
 		return client.deferReply();
 	},

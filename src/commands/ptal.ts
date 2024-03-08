@@ -80,7 +80,7 @@ async function TryGetEmojiFromURL(
 		if (emoji) {
 			return { name: emoji.name!, id: emoji.id!, animated: emoji.animated! };
 		}
-	} catch {}
+	} catch { }
 
 	return { name: '❓', animated: false, id: undefined };
 }
@@ -412,9 +412,8 @@ const command: Command = {
 		return true;
 	},
 	async execute(client) {
-		// Deferred async code can not be moved outside of a Promise
 		return client.deferReply(
-			new Promise(async (resolve) => {
+			(async () => {
 				const reply = await generateReplyFromInteraction(
 					getStringOption(client.interaction.data, 'description')!,
 					getStringOption(client.interaction.data, 'github')!,
@@ -424,7 +423,7 @@ const command: Command = {
 					getStringOption(client.interaction.data, 'other'),
 					getStringOption(client.interaction.data, 'type')
 				);
-				if (!reply) resolve(false);
+				if (!reply) return false;
 
 				await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token, '@original'), {
 					body: {
@@ -435,14 +434,13 @@ const command: Command = {
 						...reply,
 					},
 				});
-				resolve(true);
-			})
+				return true;
+			})()
 		);
 	},
 	async button(client) {
-		// Deferred async code can not be moved outside of a Promise
-		client.ctx.waitUntil(
-			new Promise(async (resolve) => {
+		client.waitUntil(
+			async () => {
 				let parts = client.interaction.data.custom_id.split('-');
 
 				if (parts[1] == 'refresh') {
@@ -499,7 +497,7 @@ const command: Command = {
 						urls.join(','),
 						emoji
 					);
-					if (!reply) resolve(false);
+					if (!reply) return false;
 
 					try {
 						await rest.patch(Routes.webhookMessage(client.env.DISCORD_CLIENT_ID, client.interaction.token), {
@@ -518,8 +516,8 @@ const command: Command = {
 						});
 					}
 				}
-				resolve(true);
-			})
+				return true;
+			}
 		);
 
 		return client.deferUpdate();
