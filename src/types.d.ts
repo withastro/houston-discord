@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from "@discordjs/builders"
+import { InteractionType } from "discord-api-types/v10"
 import { Env, JsonResponse } from "."
 import { InteractionClient } from "./discordClient"
-import { InteractionType } from "discord-api-types/v10"
 
 declare interface Command {
 	data: Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">,

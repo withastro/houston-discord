@@ -24,8 +24,8 @@ export class DiscordClient {
 }
 
 export type DeferOptions = {
-	hidden?: boolean
-}
+	hidden?: boolean;
+};
 
 export class InteractionClient<Type extends InteractionType, Data> extends DiscordClient {
 	interaction: APIBaseInteraction<Type, Data>;
@@ -43,14 +43,13 @@ export class InteractionClient<Type extends InteractionType, Data> extends Disco
 
 		let data: any = {};
 
-		if(options.hidden)
-		{
+		if (options.hidden) {
 			data.flags = MessageFlags.Ephemeral;
 		}
 
 		return new DiscordResponse({
 			type: InteractionResponseType.DeferredChannelMessageWithSource,
-			data
+			data,
 		});
 	}
 
