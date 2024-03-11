@@ -37,7 +37,8 @@ const command: Command = {
 					{ name: 'Language Tools', value: 'language-tools' },
 					{ name: 'Starlight', value: 'starlight' },
 					{ name: 'Compiler', value: 'compiler' },
-					{ name: 'Prettier', value: 'prettier-plugin-astro' }
+					{ name: 'Prettier', value: 'prettier-plugin-astro' },
+					{ name: "Studio", value: "studio-issues" }
 				)
 		),
 	async execute(client) {
