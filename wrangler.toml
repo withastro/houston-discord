@@ -4,9 +4,16 @@ main = "./src/index.ts"
 compatibility_date = "2023-11-08"
 
 node_compat = true
-
 workers_dev = false
+vars = { ENVIRONMENT = "dev" }
+
+[env.staging]
+route = "staging.houstonbot.dev"
+vars = { ENVIRONMENT = "staging" }
+
+[env.production]
 routes = [{ pattern = "houstonbot.dev", custom_domain = true }]
+vars = { ENVIRONMENT = "production" }
 
 # Variable bindings. These are arbitrary, plaintext strings (similar to environment variables)
 # Note: Use secrets to store sensitive data.
