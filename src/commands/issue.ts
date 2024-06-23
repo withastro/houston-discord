@@ -39,7 +39,7 @@ const command: Command = {
 					{ name: 'Compiler', value: 'compiler' },
 					{ name: 'Prettier', value: 'prettier-plugin-astro' },
 					{ name: 'Studio', value: 'studio-issues' },
-					{ name: "Adapters", value: "adapters" }
+					{ name: 'Adapters', value: 'adapters' }
 				)
 		),
 	async execute(client) {
