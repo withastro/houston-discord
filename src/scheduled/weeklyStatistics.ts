@@ -29,6 +29,7 @@ export default {
 		}
 
 		const guild = await client.guilds.fetch(process.env.GUILD_ID);
+		await guild.fetch();
 
 		if (!process.env.SUPPORT_CHANNEL) {
 			console.warn('No SUPPORT_CHANNEL enviroment variable was set. Skipping weekly statistics');
