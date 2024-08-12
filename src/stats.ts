@@ -1,15 +1,15 @@
-import { Client } from 'discord.js'
-import stats from './scheduled/weeklyStatistics'
-import { config } from 'dotenv'
+import { Client } from 'discord.js';
+import { config } from 'dotenv';
+import stats from './scheduled/weeklyStatistics';
 
-config()
+config();
 
 const client = new Client({
-  intents: ['GuildMessages', 'MessageContent']
-})
+	intents: ['GuildMessages', 'MessageContent'],
+});
 
-await client.login(process.env.DISCORD_TOKEN)
+await client.login(process.env.DISCORD_TOKEN);
 
-await stats.execute(client)
+await stats.execute(client);
 
-await client.destroy()
+await client.destroy();
