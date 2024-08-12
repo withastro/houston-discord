@@ -5,7 +5,7 @@ import { config } from 'dotenv'
 config()
 
 const client = new Client({
-  intents: ['GuildMessages']
+  intents: ['GuildMessages', 'MessageContent']
 })
 
 await client.login(process.env.DISCORD_TOKEN)
