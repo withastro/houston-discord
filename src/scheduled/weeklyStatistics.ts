@@ -1,166 +1,167 @@
-import { EmbedBuilder, ForumChannel, Guild, GuildForumTag, TextChannel } from 'discord.js';
-import { Client } from '../types';
-import { getDefaultEmbed } from '../utils/embeds.js';
+import type { EmbedBuilder, ForumChannel, Guild, GuildForumTag, TextChannel, Client } from 'discord.js'
+import { getDefaultEmbed } from '../utils/embeds.js'
 
 const getTagName = async (guild: Guild, fullTagList: GuildForumTag[], id: string) => {
-	const forumTag = fullTagList.find((forumTag) => forumTag.id == id);
+	const forumTag = fullTagList.find((tag) => tag.id === id)
 
-	let emoji = '';
+	let emoji = ''
 
 	if (forumTag) {
 		if (forumTag.emoji) {
 			if (forumTag.emoji.id) {
-				const guildEmoji = await guild.emojis.fetch(forumTag.emoji.id);
-				emoji = `<:${guildEmoji.name}:${guildEmoji.id}> `;
+				const guildEmoji = await guild.emojis.fetch(forumTag.emoji.id)
+				emoji = `<:${guildEmoji.name}:${guildEmoji.id}> `
 			} else {
-				emoji = `${forumTag.emoji.name!} `;
+				emoji = `${forumTag.emoji.name!} `
 			}
 		}
 
-		return `${emoji}${forumTag?.name}`;
+		return `${emoji}${forumTag?.name}`
 	}
-};
+}
 
 export default {
 	time: process.env.STATS_SCHEDULE,
 	async execute(client: Client) {
 		if (!process.env.GUILD_ID) {
-			console.warn('No GUILD_ID enviroment variable was set. Skipping weekly statistics');
-			return;
+			console.warn('No GUILD_ID enviroment variable was set. Skipping weekly statistics')
+			return
 		}
 
-		const guild = await client.guilds.fetch(process.env.GUILD_ID);
+		const guild = await client.guilds.fetch(process.env.GUILD_ID)
 
 		if (!process.env.SUPPORT_CHANNEL) {
-			console.warn('No SUPPORT_CHANNEL enviroment variable was set. Skipping weekly statistics');
-			return;
+			console.warn('No SUPPORT_CHANNEL enviroment variable was set. Skipping weekly statistics')
+			return
 		}
 
-		const forum: ForumChannel = (await guild.channels.fetch(process.env.SUPPORT_CHANNEL)) as ForumChannel;
+		const forum: ForumChannel = (await guild.channels.fetch(process.env.SUPPORT_CHANNEL)) as ForumChannel
 
-		const date = new Date();
+		const lastInterval = new Date()
+		lastInterval.setDate(lastInterval.getDate() - 7)
 
-		date.setMonth(date.getMonth() - 1);
+		const _threads = (await Promise.all([forum.threads.fetch(), forum.threads.fetchArchived()])).map(t=>t.threads.filter((x) => x.createdAt! > lastInterval))
+		const threads = [..._threads[0].values(), ..._threads[1].values()]
 
-		const threads = (await forum.threads.fetchActive()).threads.filter((x) => x.createdAt! > date);
+		// const threads = (await forum.threads.fetch()).threads.filter((x) => x.createdAt! > lastInterval)
 
 		if (!process.env.SUPPORT_SQUAD_CHANNEL) {
-			console.warn('No SUPPORT_SQUAD_CHANNEL enviroment variable was set. Skipping weekly statistics');
-			return;
+			console.warn('No SUPPORT_SQUAD_CHANNEL enviroment variable was set. Skipping weekly statistics')
+			return
 		}
 
-		const channel = (await client.channels.fetch(process.env.SUPPORT_SQUAD_CHANNEL)!) as TextChannel;
+		const channel = (await client.channels.fetch(process.env.SUPPORT_SQUAD_CHANNEL)!) as TextChannel
 
-		const titleEmbed = getDefaultEmbed().setTitle('Weekly support statistics for the last month');
+		const titleEmbed = getDefaultEmbed().setTitle('Weekly support statistics')
 
-		let embeds: EmbedBuilder[] = [];
-		embeds.push(titleEmbed);
+		const embeds: EmbedBuilder[] = []
+		embeds.push(titleEmbed)
 
-		const redirectsEmbed = getDefaultEmbed().setTitle('Support-ai redirects');
-		// Support-ai redirects
-		{
-			if (process.env.SUPPORT_AI_CHANNEL) {
-				let count = 0;
+		const unsortedTags: { [tag: string]: { [subTag: string]: number } } = {}
+		const newMembers = new Set()
+		let postsByNewMembers = 0
+		let linkedToDocs = 0
+		let cumulativeResponse = 0
 
-				for (let i = 0; i < threads.size; i++) {
-					const thread = threads.at(i)!;
-					if (thread.members.me) {
-						const msgs = await thread.messages.fetch();
-						msgs.forEach((message) => {
-							if (message.author.id == client.user!.id) count++;
-							return;
-						});
-					}
+		// biome-ignore lint/complexity/noForEach: <explanation>
+		for (const thread of threads.values()) {
+			const first = (await thread.messages.fetch()).at(-2)
+			const starterMessage = await thread.fetchStarterMessage()
+			if (first?.content.includes('https://docs.astro.build')) linkedToDocs++
+			if (first && starterMessage) cumulativeResponse += first?.createdTimestamp - starterMessage?.createdTimestamp
+
+			// check for posts from new members
+			const owner = await thread.fetchOwner()
+			if (owner?.guildMember?.joinedAt && owner.guildMember.joinedAt > lastInterval) {
+				console.log(owner.guildMember.joinedAt.toDateString())
+				console.log(lastInterval.toDateString())
+				newMembers.add(owner.user?.id)
+				postsByNewMembers++
+			}
+
+			thread.appliedTags.forEach((tag) => {
+				if (!unsortedTags[tag]) {
+					unsortedTags[tag] = {}
 				}
 
-				redirectsEmbed.setDescription(
-					`I sent <#${process.env.SUPPORT_AI_CHANNEL}> redirects in ${count}/${threads.size} support threads`
-				);
+				thread.appliedTags.forEach((subTag) => {
+					if (!unsortedTags[tag][subTag]) {
+						unsortedTags[tag][subTag] = 0
+					}
 
-				embeds.push(redirectsEmbed);
-			} else {
-				console.warn('No SUPPORT_SQUAD_CHANNEL enviroment variable was set. Skipping support-ai redirects.');
-			}
+					unsortedTags[tag][subTag]++
+				})
+			})
 		}
 
-		// Tags
-		{
-			let unsortedTags: { [tag: string]: { [subTag: string]: number } } = {};
+		const openEmbed = getDefaultEmbed()
+		openEmbed.setTitle('New posts')
+		openEmbed.setDescription(`${_threads[0].size} open posts\n${_threads[1].size} closed posts\n${linkedToDocs} (${linkedToDocs/threads.length*100}%) include a link to docs in first response\nAverage response time of ${Math.round(cumulativeResponse/threads.length /1000/60)} minutes`)
+		embeds.push(openEmbed)
 
-			threads.forEach((thread) => {
-				thread.appliedTags.forEach((tag) => {
-					if (!unsortedTags[tag]) {
-						unsortedTags[tag] = {};
-					}
+		const memberEmbed = getDefaultEmbed()
+		memberEmbed.setTitle('Posts from new members')
+		memberEmbed.setDescription(`${newMembers.size} new members posting in #support\n${postsByNewMembers/threads.length*100}% of posts by new members`)
+		embeds.push(memberEmbed)
 
-					thread.appliedTags.forEach((subTag) => {
-						if (!unsortedTags[tag][subTag]) {
-							unsortedTags[tag][subTag] = 0;
-						}
+		let description = ''
+		let embedCount = 0
 
-						unsortedTags[tag][subTag]++;
-					});
-				});
-			});
+		let tags = Object.fromEntries(
+			Object.entries(unsortedTags)
+				.sort((a, b) => {
+					return unsortedTags[a[0]][a[0]] - unsortedTags[b[0]][b[0]]
+				})
+				.reverse()
+		)
 
-			let description = '';
-			let embedCount = 0;
+		for (const tagId in tags) {
+			const tagName = await getTagName(guild, forum.availableTags, tagId)
+			let localDescription = `**${tagName}** (${tags[tagId][tagId]})\n`
 
-			let tags = Object.fromEntries(
-				Object.entries(unsortedTags)
-					.sort((a, b) => {
-						return unsortedTags[a[0]][a[0]] - unsortedTags[b[0]][b[0]];
-					})
-					.reverse()
-			);
+			/** Sub tags sorted descending by count, excluding tags that show up just once. */
+			const subTags = Object.entries(tags[tagId])
+				.sort(([, countA], [, countB]) => countB - countA)
+				.filter(([subTagId, count]) => subTagId !== tagId && count > 1)
 
-			for (const tagId in tags) {
-				const tagName = await getTagName(guild, forum.availableTags, tagId);
-				let localDescription = `**${tagName}** (${tags[tagId][tagId]})\n`;
-
-				/** Sub tags sorted descending by count, excluding tags that show up just once. */
-				const subTags = Object.entries(tags[tagId])
-					.sort(([, countA], [, countB]) => countB - countA)
-					.filter(([subTagId, count]) => subTagId !== tagId && count > 1);
-
-				if (subTags.length) {
-					const subDescriptions = [];
-					for (const [id, count] of subTags) {
-						const subTagName = await getTagName(guild, forum.availableTags, id);
-						subDescriptions.push(`${subTagName} (${count})`);
-					}
-					localDescription += `+ ${subDescriptions.join(' / ')}\n`;
+			if (subTags.length) {
+				const subDescriptions = []
+				for (const [id, count] of subTags) {
+					const subTagName = await getTagName(guild, forum.availableTags, id)
+					subDescriptions.push(`${subTagName} (${count})`)
 				}
-
-				localDescription += '\n';
-
-				if (description.length + localDescription.length > 4096) {
-					let embed = getDefaultEmbed();
-
-					if (embedCount == 0) {
-						embed.setTitle('Tags');
-					}
-
-					embed.setDescription(description);
-					description = '';
-					embeds.push(embed);
-					embedCount += 1;
-				}
-
-				description += localDescription;
+				localDescription += `+ ${subDescriptions.join(' / ')}\n`
 			}
 
-			let embed = getDefaultEmbed();
+			localDescription += '\n'
 
-			if (embedCount == 0) {
-				embed.setTitle('Tags');
+			if (description.length + localDescription.length > 4096) {
+				let embed = getDefaultEmbed()
+
+				if (embedCount == 0) {
+					embed.setTitle('Tags')
+				}
+
+				embed.setDescription(description)
+				description = ''
+				embeds.push(embed)
+				embedCount += 1
 			}
 
-			embed.setDescription(description);
-			embeds.push(embed);
+			description += localDescription
 		}
+
+		let embed = getDefaultEmbed()
+
+		if (embedCount == 0) {
+			embed.setTitle('Tags')
+		}
+
+		embed.setDescription(description || 'failed')
+		embeds.push(embed)
+
 		for (let i = 0; i < embeds.length; i++) {
-			channel.send({ embeds: [embeds[i]] });
+			channel.send({ embeds: [embeds[i]] })
 		}
 	},
-};
+}

@@ -14,7 +14,8 @@
 		"format:ci": "pnpm run format:imports && pnpm run format:code",
 		"format:code": "prettier . -w --cache",
 		"format:imports": "organize-imports-cli ./tsconfig.json",
-		"register": "tsc -p register.tsconfig.json && node ./dist/register.js"
+		"register": "tsc -p register.tsconfig.json && node ./dist/register.js",
+		"collect:stats": "tsm src/stats.ts"
 	},
 	"engines": {
 		"node": ">=18.18.0",
@@ -30,11 +31,13 @@
 		"algoliasearch": "^4.20.0",
 		"discord-api-types": "^0.37.63",
 		"discord-interactions": "^3.4.0",
+		"discord.js": "^14.15.3",
 		"dotenv": "^16.3.1",
 		"html-entities": "^2.4.0",
 		"itty-router": "^4.0.23",
 		"node-schedule": "^2.1.1",
-		"organize-imports-cli": "^0.10.0"
+		"organize-imports-cli": "^0.10.0",
+		"tsm": "^2.3.0"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20231025.0",
