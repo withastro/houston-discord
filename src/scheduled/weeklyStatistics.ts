@@ -103,12 +103,12 @@ export default {
 
 				if(owner)
 				{
-					console.log((await guild.members.fetch(owner.id)).joinedAt)
+					const member = (await guild.members.fetch(owner.id));
 					if (
-						owner.guildMember?.joinedAt &&
-						owner.guildMember.joinedAt > lastInterval
+						member?.joinedAt &&
+						member.joinedAt > lastInterval
 					) {
-						console.log(owner.guildMember.joinedAt.toDateString());
+						console.log(member.joinedAt.toDateString());
 						console.log(lastInterval.toDateString());
 						newMembers.add(owner.user?.id);
 						postsByNewMembers++;
