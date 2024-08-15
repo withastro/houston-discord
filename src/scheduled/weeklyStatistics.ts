@@ -83,7 +83,7 @@ export default {
 
 		const unsortedTags: { [tag: string]: { [subTag: string]: number } } = {};
 		const newMembers = new Set();
-		const errors = [];
+		const errors: [string, string][] = [];
 		let postsByNewMembers = 0;
 		let linkedToDocs = 0;
 		let cumulativeResponse = 0;
@@ -123,8 +123,8 @@ export default {
 						unsortedTags[tag][subTag]++;
 					});
 				});
-			} catch (err) {
-				errors.push(err);
+			} catch (err: any) {
+				errors.push([err.toString(), thread.id]);
 			}
 		}
 
@@ -207,7 +207,7 @@ export default {
 		if (errors.length) {
 			const errorEmbed = getDefaultEmbed();
 			errorEmbed.setTitle("Errors");
-			errorEmbed.setDescription(errors.map((e) => `${e}\n`).join());
+			errorEmbed.setDescription(errors.map(([err, id]) => `<#${id}>: ${err}\n`).join());
 			embeds.push(errorEmbed)
 		}
 
