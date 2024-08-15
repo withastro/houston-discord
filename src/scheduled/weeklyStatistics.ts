@@ -152,7 +152,7 @@ export default {
 		const memberEmbed = getDefaultEmbed();
 		memberEmbed.setTitle("Posts from new members");
 		memberEmbed.setDescription(
-			`${newMembers.size} new members posting in #support\n${Math.round(
+			`${newMembers.size} new members posting in <#${process.env.SUPPORT_CHANNEL}>\n${Math.round(
 				(postsByNewMembers / threads.length) * 100,
 			)}% of posts by new members`,
 		);
