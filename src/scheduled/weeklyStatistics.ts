@@ -108,8 +108,6 @@ export default {
 						member?.joinedAt &&
 						member.joinedAt > lastInterval
 					) {
-						console.log(member.joinedAt.toDateString());
-						console.log(lastInterval.toDateString());
 						newMembers.add(owner.user?.id);
 						postsByNewMembers++;
 					}
