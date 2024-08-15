@@ -124,7 +124,10 @@ export default {
 					});
 				});
 			} catch (err: any) {
-				errors.push([err.toString(), thread.id]);
+				err = err.toString()
+				// 10008: unknown message (e.g. deleted message)
+				if (err.contains('10008')) continue
+				errors.push([err, thread.id]);
 			}
 		}
 
@@ -207,7 +210,7 @@ export default {
 		if (errors.length) {
 			const errorEmbed = getDefaultEmbed();
 			errorEmbed.setTitle("Errors");
-			errorEmbed.setDescription(errors.map(([err, id]) => `<#${id}>: ${err}\n`).join());
+			errorEmbed.setDescription(errors.map(([err, id]) => `<#${id}>: ${err}`).join('\n'));
 			embeds.push(errorEmbed)
 		}
 
