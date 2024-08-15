@@ -103,7 +103,7 @@ export default {
 
 				if(owner)
 				{
-					console.log(owner.guildMember)
+					console.log((await guild.members.fetch(owner.id)).joinedAt)
 					if (
 						owner.guildMember?.joinedAt &&
 						owner.guildMember.joinedAt > lastInterval
