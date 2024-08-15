@@ -103,7 +103,7 @@ export default {
 
 				if(owner)
 				{
-					console.log(owner.id, owner.guildMember?.joinedAt?.toISOString(), lastInterval.toISOString())
+					console.log(owner.guildMember)
 					if (
 						owner.guildMember?.joinedAt &&
 						owner.guildMember.joinedAt > lastInterval
