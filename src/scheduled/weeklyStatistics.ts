@@ -126,7 +126,7 @@ export default {
 			} catch (err: any) {
 				err = err.toString()
 				// 10008: unknown message (e.g. deleted message)
-				if (err.contains('10008')) continue
+				if (err.includes('10008')) continue
 				errors.push([err, thread.id]);
 			}
 		}
