@@ -100,6 +100,7 @@ export default {
 
 				// check for posts from new members
 				const owner = await thread.fetchOwner();
+				console.log(owner?.user?.displayName)
 				if (
 					owner?.guildMember?.joinedAt &&
 					owner.guildMember.joinedAt > lastInterval
