@@ -21,7 +21,7 @@ const getTagName = async (
 		if (forumTag.emoji) {
 			if (forumTag.emoji.id) {
 				const guildEmoji = await guild.emojis.fetch(forumTag.emoji.id);
-				emoji = `<:${guildEmoji.name}:${guildEmoji.id}> `;
+				emoji = `<${guildEmoji.animated? "a" : ""}:${guildEmoji.name}:${guildEmoji.id}> `;
 			} else {
 				emoji = `${forumTag.emoji.name!} `;
 			}
