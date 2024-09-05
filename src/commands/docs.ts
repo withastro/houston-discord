@@ -106,7 +106,7 @@ const command: Command = {
 		.addBooleanOption((option) =>
 			option
 				.setName('hidden')
-				.setDescription('Wether this should only be shown to you. Defaults to true')
+				.setDescription('Whether this should only be shown to you. Defaults to true')
 				.setRequired(false)
 		)
 		.addStringOption((option) =>
@@ -144,7 +144,7 @@ const command: Command = {
 		return true;
 	},
 	async execute(client) {
-		return client.deferReply({ hidden: getBooleanOption(client.interaction.data, 'hidden') }, async () => {
+		return client.deferReply({ hidden: getBooleanOption(client.interaction.data, 'hidden') ?? true }, async () => {
 			let query = getStringOption(client.interaction.data, 'query')!;
 
 			if (query.startsWith('auto-')) {
