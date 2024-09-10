@@ -1,199 +1,153 @@
-import type { Client, EmbedBuilder, ForumChannel, Guild, GuildForumTag, TextChannel } from 'discord.js';
-import { getDefaultEmbed } from '../utils/embeds.js';
+import { Client, EmbedBuilder, ForumChannel, Guild, GuildForumTag, TextChannel } from 'discord.js';
+
+function getDefaultEmbed() {
+	return new EmbedBuilder().setColor([0xff, 0x5d, 0x00]);
+}
 
 const getTagName = async (guild: Guild, fullTagList: GuildForumTag[], id: string) => {
 	const forumTag = fullTagList.find((tag) => tag.id === id);
+	if (!forumTag) return 'No Tags Found';
 
 	let emoji = '';
-
-	if (forumTag) {
-		if (forumTag.emoji) {
-			if (forumTag.emoji.id) {
-				const guildEmoji = await guild.emojis.fetch(forumTag.emoji.id);
-				emoji = `<${guildEmoji.animated ? 'a' : ''}:${guildEmoji.name}:${guildEmoji.id}> `;
-			} else {
-				emoji = `${forumTag.emoji.name!} `;
-			}
+	if (forumTag.emoji) {
+		if (forumTag.emoji.id) {
+			const guildEmoji = await guild.emojis.fetch(forumTag.emoji.id);
+			emoji = `<${guildEmoji.animated ? 'a' : ''}:${guildEmoji.name}:${guildEmoji.id}> `;
+		} else {
+			emoji = `${forumTag.emoji.name} `;
 		}
-
-		return `${emoji}${forumTag?.name}`;
 	}
+
+	return `${emoji}${forumTag.name}`;
 };
 
 export default {
 	time: process.env.STATS_SCHEDULE,
 	async execute(client: Client) {
-		if (!process.env.GUILD_ID) {
-			console.warn('No GUILD_ID enviroment variable was set. Skipping weekly statistics');
+		const guildId = process.env.GUILD_ID;
+		const supportChannelId = process.env.SUPPORT_CHANNEL;
+		const supportSquadChannelId = process.env.SUPPORT_SQUAD_CHANNEL;
+
+		if (!guildId || !supportChannelId || !supportSquadChannelId) {
+			console.warn('Missing required environment variables. Skipping weekly statistics.');
 			return;
 		}
 
-		const guild = await client.guilds.fetch(process.env.GUILD_ID);
-		await guild.fetch();
-
-		if (!process.env.SUPPORT_CHANNEL) {
-			console.warn('No SUPPORT_CHANNEL enviroment variable was set. Skipping weekly statistics');
-			return;
-		}
-
-		const forum: ForumChannel = (await guild.channels.fetch(process.env.SUPPORT_CHANNEL)) as ForumChannel;
+		const guild = await client.guilds.fetch(guildId);
+		const forum = (await guild.channels.fetch(supportChannelId)) as ForumChannel;
+		const channel = (await client.channels.fetch(supportSquadChannelId)) as TextChannel;
 
 		const lastInterval = new Date();
 		lastInterval.setDate(lastInterval.getDate() - 7);
 
-		const _threads = (await Promise.all([forum.threads.fetch(), forum.threads.fetchArchived()])).map((t) =>
-			t.threads.filter((x) => x.createdAt! > lastInterval)
-		);
-		const threads = [..._threads[0].values(), ..._threads[1].values()];
+		const [openThreads, archivedThreads] = await Promise.all([forum.threads.fetch(), forum.threads.fetchArchived()]);
 
-		// const threads = (await forum.threads.fetch()).threads.filter((x) => x.createdAt! > lastInterval)
+		const threads = [
+			...openThreads.threads.filter((thread) => thread.createdAt! > lastInterval).values(),
+			...archivedThreads.threads.filter((thread) => thread.createdAt! > lastInterval).values(),
+		];
 
-		if (!process.env.SUPPORT_SQUAD_CHANNEL) {
-			console.warn('No SUPPORT_SQUAD_CHANNEL enviroment variable was set. Skipping weekly statistics');
-			return;
-		}
-
-		const channel = (await client.channels.fetch(process.env.SUPPORT_SQUAD_CHANNEL)!) as TextChannel;
-
-		const titleEmbed = getDefaultEmbed().setTitle('Weekly support statistics');
-
-		const embeds: EmbedBuilder[] = [];
-		embeds.push(titleEmbed);
+		const titleEmbed = getDefaultEmbed().setTitle('Weekly Support Statistics');
+		const embeds: EmbedBuilder[] = [titleEmbed];
 
 		const unsortedTags: { [tag: string]: { [subTag: string]: number } } = {};
-		const newMembers = new Set();
+		const newMembers = new Set<string>();
 		const errors: [string, string][] = [];
 		let postsByNewMembers = 0;
 		let linkedToDocs = 0;
 		let cumulativeResponse = 0;
 
-		// biome-ignore lint/complexity/noForEach: <explanation>
-		for (const thread of threads.values()) {
+		for (const thread of threads) {
 			try {
-				const first = (await thread.messages.fetch()).at(-2);
+				const messages = await thread.messages.fetch();
+				const first = messages.at(-2);
 				const starterMessage = await thread.fetchStarterMessage();
+
 				if (first?.content.includes('https://docs.astro.build')) linkedToDocs++;
-				if (first && starterMessage) cumulativeResponse += first?.createdTimestamp - starterMessage?.createdTimestamp;
+				if (first && starterMessage) {
+					cumulativeResponse += first.createdTimestamp - starterMessage.createdTimestamp;
+				}
 
-				// check for posts from new members
 				const owner = await thread.fetchOwner();
-
 				if (owner) {
 					const member = await guild.members.fetch(owner.id);
 					if (member?.joinedAt && member.joinedAt > lastInterval) {
-						newMembers.add(owner.user?.id);
+						newMembers.add(owner.user?.id ?? '');
 						postsByNewMembers++;
 					}
-				} else {
-					console.log('NO OWNER');
 				}
 
-				thread.appliedTags.forEach((tag) => {
-					if (!unsortedTags[tag]) {
-						unsortedTags[tag] = {};
-					}
-
-					thread.appliedTags.forEach((subTag) => {
-						if (!unsortedTags[tag][subTag]) {
-							unsortedTags[tag][subTag] = 0;
-						}
-
+				for (const tag of thread.appliedTags) {
+					if (!unsortedTags[tag]) unsortedTags[tag] = {};
+					for (const subTag of thread.appliedTags) {
+						if (!unsortedTags[tag][subTag]) unsortedTags[tag][subTag] = 0;
 						unsortedTags[tag][subTag]++;
-					});
-				});
-			} catch (err: any) {
-				err = err.toString();
-				// 10008: unknown message (e.g. deleted message)
-				if (err.includes('10008')) continue;
-				errors.push([err, thread.id]);
+					}
+				}
+			} catch (err) {
+				const errorMessage = err instanceof Error ? err.toString() : 'Unknown error';
+				if (!errorMessage.includes('10008')) errors.push([errorMessage, thread.id]);
 			}
 		}
 
-		const openEmbed = getDefaultEmbed();
-		openEmbed.setTitle('New posts');
-		openEmbed.setDescription(
-			`${_threads[0].size} open posts\n${_threads[1].size} closed posts\n${linkedToDocs} (${Math.round(
-				(linkedToDocs / threads.length) * 100
-			)}%) include a link to docs in first response\nAverage response time of ${Math.round(
-				cumulativeResponse / threads.length / 1000 / 60
-			)} minutes`
-		);
+		const openEmbed = getDefaultEmbed()
+			.setTitle('New Posts')
+			.setDescription(
+				`${threads.filter((thread) => !thread.archived).length} open posts\n` +
+					`${threads.filter((thread) => thread.archived).length} closed posts\n` +
+					`${linkedToDocs} (${Math.round(
+						(linkedToDocs / threads.length) * 100
+					)}%) include a link to docs in the first response\n` +
+					`Average response time: ${Math.round(cumulativeResponse / threads.length / 1000 / 60)} minutes`
+			);
 		embeds.push(openEmbed);
 
-		const memberEmbed = getDefaultEmbed();
-		memberEmbed.setTitle('Posts from new members');
-		memberEmbed.setDescription(
-			`${newMembers.size} new members posting in <#${process.env.SUPPORT_CHANNEL}>\n${Math.round(
-				(postsByNewMembers / threads.length) * 100
-			)}% of posts by new members`
-		);
+		const memberEmbed = getDefaultEmbed()
+			.setTitle('Posts from New Members')
+			.setDescription(
+				`${newMembers.size} new members posting in <#${supportChannelId}>\n` +
+					`${Math.round((postsByNewMembers / threads.length) * 100)}% of posts by new members`
+			);
 		embeds.push(memberEmbed);
 
 		let description = '';
 		let embedCount = 0;
-
-		let tags = Object.fromEntries(
-			Object.entries(unsortedTags)
-				.sort((a, b) => {
-					return unsortedTags[a[0]][a[0]] - unsortedTags[b[0]][b[0]];
-				})
-				.reverse()
+		const tags = Object.fromEntries(
+			Object.entries(unsortedTags).sort((a, b) => unsortedTags[b[0]][b[0]] - unsortedTags[a[0]][a[0]])
 		);
 
 		for (const tagId in tags) {
 			const tagName = await getTagName(guild, forum.availableTags, tagId);
 			let localDescription = `**${tagName}** (${tags[tagId][tagId]})\n`;
 
-			/** Sub tags sorted descending by count, excluding tags that show up just once. */
-			// const subTags = Object.entries(tags[tagId])
-			// 	.sort(([, countA], [, countB]) => countB - countA)
-			// 	.filter(([subTagId, count]) => subTagId !== tagId && count > 1);
-
-			// if (subTags.length) {
-			// 	const subDescriptions = [];
-			// 	for (const [id, count] of subTags) {
-			// 		const subTagName = await getTagName(guild, forum.availableTags, id);
-			// 		subDescriptions.push(`${subTagName} (${count})`);
-			// 	}
-			// 	localDescription += `+ ${subDescriptions.join(' / ')}\n`;
-			// }
-
 			localDescription += '\n';
 
 			if (description.length + localDescription.length > 4096) {
-				let embed = getDefaultEmbed();
-
-				if (embedCount == 0) {
-					embed.setTitle('Tags');
-				}
-
-				embed.setDescription(description);
-				description = '';
+				const embed = getDefaultEmbed()
+					.setTitle(embedCount === 0 ? 'Tags' : '')
+					.setDescription(description);
 				embeds.push(embed);
-				embedCount += 1;
+				description = '';
+				embedCount++;
 			}
 
 			description += localDescription;
 		}
 
-		let embed = getDefaultEmbed();
-
-		if (embedCount == 0) {
-			embed.setTitle('Tags');
-		}
-
-		embed.setDescription(description || 'failed');
-		embeds.push(embed);
+		const finalEmbed = getDefaultEmbed()
+			.setTitle(embedCount === 0 ? 'Tags' : '')
+			.setDescription(description || 'No tags available');
+		embeds.push(finalEmbed);
 
 		if (errors.length) {
-			const errorEmbed = getDefaultEmbed();
-			errorEmbed.setTitle('Errors');
-			errorEmbed.setDescription(errors.map(([err, id]) => `<#${id}>: ${err}`).join('\n'));
+			const errorEmbed = getDefaultEmbed()
+				.setTitle('Errors')
+				.setDescription(errors.map(([err, id]) => `<#${id}>: ${err}`).join('\n'));
 			embeds.push(errorEmbed);
 		}
 
-		for (let i = 0; i < embeds.length; i++) {
-			channel.send({ embeds: [embeds[i]] });
+		for (const embed of embeds) {
+			await channel.send({ embeds: [embed] });
 		}
 	},
 };
