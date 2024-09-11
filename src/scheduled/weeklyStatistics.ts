@@ -1,4 +1,8 @@
-import { Client, ForumChannel, EmbedBuilder, Guild, GuildForumTag, TextChannel } from 'discord.js';
+import { Client, EmbedBuilder, ForumChannel, Guild, GuildForumTag, TextChannel } from 'discord.js';
+
+function getDefaultEmbed() {
+	return new EmbedBuilder().setColor([0xff, 0x5d, 0x00]);
+}
 
 const getTagName = async (guild: Guild, fullTagList: GuildForumTag[], id: string) => {
 	const forumTag = fullTagList.find((tag) => tag.id === id);
@@ -43,7 +47,8 @@ export default {
 			...archivedThreads.threads.filter((thread) => thread.createdAt! > lastInterval).values(),
 		];
 
-		const mainEmbed = new EmbedBuilder().setColor([0xff, 0x5d, 0x00]).setTitle('Weekly Support Statistics');
+		const titleEmbed = getDefaultEmbed().setTitle('Weekly Support Statistics');
+		const embeds: EmbedBuilder[] = [titleEmbed];
 
 		const unsortedTags: { [tag: string]: { [subTag: string]: number } } = {};
 		const newMembers = new Set<string>();
@@ -84,23 +89,26 @@ export default {
 				if (!errorMessage.includes('10008')) errors.push([errorMessage, thread.id]);
 			}
 		}
-		mainEmbed.addFields({
-			name: 'New Posts',
-			value:
-				`${threads.filter((thread) => !thread.archived).length} open posts\n` +
-				`${threads.filter((thread) => thread.archived).length} closed posts\n` +
-				`${linkedToDocs} (${Math.round(
-					(linkedToDocs / threads.length) * 100
-				)}%) include a link to docs in the first response\n` +
-				`Average response time: ${Math.round(cumulativeResponse / threads.length / 1000 / 60)} minutes`,
-		});
 
-		mainEmbed.addFields({
-			name: 'Posts from New Members',
-			value:
+		const openEmbed = getDefaultEmbed()
+			.setTitle('New Posts')
+			.setDescription(
+				`${threads.filter((thread) => !thread.archived).length} open posts\n` +
+					`${threads.filter((thread) => thread.archived).length} closed posts\n` +
+					`${linkedToDocs} (${Math.round(
+						(linkedToDocs / threads.length) * 100
+					)}%) include a link to docs in the first response\n` +
+					`Average response time: ${Math.round(cumulativeResponse / threads.length / 1000 / 60)} minutes`
+			);
+		embeds.push(openEmbed);
+
+		const memberEmbed = getDefaultEmbed()
+			.setTitle('Posts from New Members')
+			.setDescription(
 				`${newMembers.size} new members posting in <#${supportChannelId}>\n` +
-				`${Math.round((postsByNewMembers / threads.length) * 100)}% of posts by new members`,
-		});
+					`${Math.round((postsByNewMembers / threads.length) * 100)}% of posts by new members`
+			);
+		embeds.push(memberEmbed);
 
 		let description = '';
 		let embedCount = 0;
@@ -115,10 +123,10 @@ export default {
 			localDescription += '\n';
 
 			if (description.length + localDescription.length > 4096) {
-				mainEmbed.addFields({
-					name: `${embedCount === 0 ? 'Tags' : ''}`,
-					value: description,
-				});
+				const embed = getDefaultEmbed()
+					.setTitle(embedCount === 0 ? 'Tags' : '')
+					.setDescription(description);
+				embeds.push(embed);
 				description = '';
 				embedCount++;
 			}
@@ -126,22 +134,17 @@ export default {
 			description += localDescription;
 		}
 
-		mainEmbed.addFields({
-			name: `${embedCount === 0 ? 'Tags' : ''}`,
-			value: description || 'No tags available',
-		});
+		const finalEmbed = getDefaultEmbed()
+			.setTitle(embedCount === 0 ? 'Tags' : '')
+			.setDescription(description || 'No tags available');
+		embeds.push(finalEmbed);
 
 		if (errors.length) {
-			const errorEmbed = new EmbedBuilder()
-				.setColor([0x00, 0x00, 0x00])
+			const errorEmbed = getDefaultEmbed()
 				.setTitle('Errors')
-				.addFields({
-					name: 'Errors',
-					value: errors.map(([err, id]) => `<#${id}>: ${err}`).join('\n'),
-				});
-			await channel.send({ embeds: [errorEmbed] });
+				.setDescription(errors.map(([err, id]) => `<#${id}>: ${err}`).join('\n'));
+			embeds.push(errorEmbed);
 		}
-
-		await channel.send({ embeds: [mainEmbed] });
+		await channel.send({ embeds });
 	},
 };
