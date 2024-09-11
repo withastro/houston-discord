@@ -6,7 +6,7 @@ function getDefaultEmbed() {
 
 const getTagName = async (guild: Guild, fullTagList: GuildForumTag[], id: string) => {
 	const forumTag = fullTagList.find((tag) => tag.id === id);
-	if (!forumTag) return 'No Tags Found';
+	if (!forumTag) return 'No Tag Found';
 
 	let emoji = '';
 	if (forumTag.emoji) {
