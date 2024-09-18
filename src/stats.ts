@@ -5,7 +5,7 @@ import stats from './scheduled/weeklyStatistics';
 config();
 
 const client = new Client({
-	intents: ['GuildMessages', 'MessageContent'],
+	intents: ['GuildMessages', 'MessageContent', 'Guilds'],
 });
 
 await client.login(process.env.DISCORD_TOKEN);
