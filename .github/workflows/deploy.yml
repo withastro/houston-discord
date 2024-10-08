@@ -34,3 +34,31 @@ jobs:
               with:
                 apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
                 preCommands: pnpm register
+                secrets: |
+                  ALGOLIA_API_KEY
+                  ALGOLIA_APP_ID
+                  ALGOLIA_INDEX
+                  DISCORD_CLIENT_ID
+                  DISCORD_PUBLIC_KEY
+                  DISCORD_TOKEN
+                  GITHUB_TOKEN
+                  GUILD_ID
+                  SUPPORT_AI_CHANNEL
+                  SUPPORT_CHANNEL
+                  SUPPORT_SQUAD_CHANNEL
+                  STATS_SCHEDULE
+                  SUPPORT_REDIRECT_SCHEDULE
+              env:
+                ALGOLIA_API_KEY: ${{ secrets.HOUSTON_ALGOLIA_API_KEY }}
+                ALGOLIA_APP_ID: ${{ secrets.HOUSTON_ALGOLIA_APP_ID}}
+                ALGOLIA_INDEX: "astro"
+                DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
+                DISCORD_PUBLIC_KEY: ${{ secrets.HOUSTON_DISCORD_PUBLIC_KEY}}
+                DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+                GITHUB_TOKEN: ${{ secrets.HOUSTON_GITHUB_TOKEN }}
+                GUILD_ID: "830184174198718474"
+                SUPPORT_AI_CHANNEL: "1095492539085230272"
+                SUPPORT_CHANNEL: "1019713903481081876"
+                SUPPORT_SQUAD_CHANNEL: "916064458814681218"
+                STATS_SCHEDULE: "0 0 * * 1"
+                SUPPORT_REDIRECT_SCHEDULE: "*/15 * * * *"
