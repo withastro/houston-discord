@@ -24,21 +24,21 @@ const messages = [
 	`We believe in your troubleshooting powers, @role 👌`,
 	`@role—believe in yourself, and all problems can be solved 🧠`,
 	`Has anybody seen @role? We need their support superpowers 👀`,
-    `@role Now getting the attention of someone who can help directly to do the thing they volunteered to do`,
-    `Vote for @role and all your wildest dreams will come true`,
+	`@role Now getting the attention of someone who can help directly to do the thing they volunteered to do`,
+	`Vote for @role and all your wildest dreams will come true`,
 	`🚨 \`ALERT!\` 🚨 \`ALERT!\` 🚨 \`ALERT!\` 🚨\n**THIS IS A SUPPORT EMERGENCY!**\n\n(cc @role)`,
 ];
 
 const command: Command = {
 	data: new SlashCommandBuilder().setName('support').setDescription('Summon support patrol'),
-    async initialize(env: Env){
-        console.log(env)
-        if(!env.SUPPORT_PATROL_ID){
-            console.warn('SUPPORT_PATROL_ID is not defined');
-            return false;
-        }
-        return true;
-    },
+	async initialize(env: Env) {
+		console.log(env);
+		if (!env.SUPPORT_PATROL_ID) {
+			console.warn('SUPPORT_PATROL_ID is not defined');
+			return false;
+		}
+		return true;
+	},
 	async execute(client) {
 		const role = client.env.SUPPORT_PATROL_ID;
 		const message = random(messages).replaceAll('@role', role);
