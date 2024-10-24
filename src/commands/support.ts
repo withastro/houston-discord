@@ -16,7 +16,6 @@ const messages = [
 	`👋 Oh hey @role, mind giving us a hand here?`,
 	`👀 @role... a little help? We’re struggling here.`,
 	`Let’s solve this mystery, @role! 🧐🔍`,
-	`How do you do, fellow @role members? Need some support tips? 🛹👨‍🦳`,
 	`@role, it’s time to YEET this issue out of existence 💀`,
 	`🐸 It’s support time, my @role-ies! Let’s do this!`,
 	`@role—let us help them! 🙏`,
