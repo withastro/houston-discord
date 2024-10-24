@@ -1,7 +1,7 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
-import { Command } from '../types';
-import { random } from '../utils/helpers.js';
-import { Env } from '..';
+import { SlashCommandBuilder } from "@discordjs/builders";
+import { Command } from "../types";
+import { random } from "../utils/helpers.js";
+import { Env } from "..";
 
 const messages = [
 	`@role is here to rescue us from confusion! 🦸‍♂️🦸‍♀️`,
@@ -30,18 +30,19 @@ const messages = [
 ];
 
 const command: Command = {
-	data: new SlashCommandBuilder().setName('support').setDescription('Summon support patrol'),
+	data: new SlashCommandBuilder()
+		.setName("support")
+		.setDescription("Summon support patrol"),
 	async initialize(env: Env) {
-		console.log(env);
 		if (!env.SUPPORT_PATROL_ID) {
-			console.warn('SUPPORT_PATROL_ID is not defined');
+			console.warn("SUPPORT_PATROL_ID is not defined");
 			return false;
 		}
 		return true;
 	},
 	async execute(client) {
-		const role = client.env.SUPPORT_PATROL_ID;
-		const message = random(messages).replaceAll('@role', role);
+		const role = `<@${client.env.SUPPORT_PATROL_ID}>`;
+		const message = random(messages).replaceAll("@role", role);
 
 		return client.reply({
 			content: message,
