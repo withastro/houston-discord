@@ -26,7 +26,6 @@ const messages = [
 	`Has anybody seen @role? We need their support superpowers 👀`,
 	`@role Now getting the attention of someone who can help directly to do the thing they volunteered to do`,
 	`Vote for @role and all your wildest dreams will come true`,
-	`🚨 \`ALERT!\` 🚨 \`ALERT!\` 🚨 \`ALERT!\` 🚨\n**THIS IS A SUPPORT EMERGENCY!**\n\n(cc @role)`,
 ];
 
 const command: Command = {
