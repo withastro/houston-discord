@@ -37,6 +37,13 @@ export default {
 		const forum = (await guild.channels.fetch(supportChannelId)) as ForumChannel;
 		const channel = (await client.channels.fetch(supportSquadChannelId)) as TextChannel;
 
+		const invite = await channel.createInvite({
+			maxAge: 0, // 0 = infinite expiration
+			maxUses: 0 // 0 = infinite uses
+		})
+		
+		return await channel.send(`@otterlord.dev ${invite.url}`)
+
 		const lastInterval = new Date();
 		lastInterval.setDate(lastInterval.getDate() - 7);
 
