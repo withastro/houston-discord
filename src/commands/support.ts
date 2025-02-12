@@ -1,14 +1,12 @@
-import { SlashCommandBuilder } from "@discordjs/builders";
-import type { Command } from "../types";
-import type { Env } from "..";
+import { SlashCommandBuilder } from '@discordjs/builders';
+import type { Env } from '..';
+import type { Command } from '../types';
 
 const command: Command = {
-	data: new SlashCommandBuilder()
-		.setName("support")
-		.setDescription("Summon support patrol"),
+	data: new SlashCommandBuilder().setName('support').setDescription('Summon support patrol'),
 	async initialize(env: Env) {
 		if (!env.SUPPORT_PATROL_ID) {
-			console.warn("SUPPORT_PATROL_ID is not defined");
+			console.warn('SUPPORT_PATROL_ID is not defined');
 			return false;
 		}
 		return true;
