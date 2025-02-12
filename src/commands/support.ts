@@ -12,7 +12,7 @@ const command: Command = {
 		return true;
 	},
 	async execute(client) {
-		const role = `<@${client.env.SUPPORT_PATROL_ID}>`;
+		const role = `<@&${client.env.SUPPORT_PATROL_ID}>`;
 		const message = `Houston, we have a problem... and ${role}, you’re our mission control! 🚀`;
 
 		return client.reply({
