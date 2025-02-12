@@ -38,6 +38,7 @@ export interface Env {
 	GUILD_ID?: string;
 	SUPPORT_CHANNEL?: string;
 	SUPPORT_AI_CHANNEL?: string;
+	SUPPORT_PATROL_ID?: string;
 	SUPPORT_SQUAD_CHANNEL?: string;
 	STATS_SCHEDULE?: string;
 	SUPPORT_REDIRECT_SCHEDULE?: string;
