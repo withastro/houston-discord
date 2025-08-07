@@ -6,6 +6,7 @@ import { default as PTALCommand } from './ptal.js';
 import { default as SolvedCommand } from './solved.js';
 import { default as SupportCommand } from './support.js';
 import { default as TweetCommand } from './tweet.js';
+import { default as ContributeCommand } from './contribute.js';
 // import {default as RetriggerStatisticsCommand} from "./retriggerStatistics";
 
 type CommandList = {
@@ -20,6 +21,7 @@ const commandList: CommandList = {
 	tweet: TweetCommand,
 	solved: SolvedCommand,
 	support: SupportCommand,
+	contribute: ContributeCommand,
 	//"retrigger-statistics": RetriggerStatisticsCommand
 };
 
