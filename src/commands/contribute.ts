@@ -30,7 +30,6 @@ const command: Command = {
 
 		return client.reply({
 			embeds: [embed.toJSON()],
-			allowed_mentions: { parse: ['roles'] },
 		});
 	},
 };
