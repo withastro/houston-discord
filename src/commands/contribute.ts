@@ -11,7 +11,7 @@ const command: Command = {
 			.setTitle('🚀 Contribute to Astro')
 			.setDescription('Help make Astro better! Here are some ways to get started with contributing:')
 			.setColor(0xff5d01)
-			.setThumbnail('https://astro.build/assets/press/astro-icon-light-gradient.svg')
+			.setThumbnail('https://astro.build/assets/press/astro-icon-dark.svg')
 			.addFields(
 				{
 					name: '🌱 Good First Issues',
