@@ -10,8 +10,7 @@ const command: Command = {
 		const embed = getDefaultEmbed()
 			.setTitle('🚀 Contribute to Astro')
 			.setDescription('Help make Astro better! Here are some ways to get started with contributing:')
-			.setColor(0xff5d01)
-			.setThumbnail('https://astro.build/assets/press/astro-icon-dark.svg')
+			.setThumbnail('https://astro.build/assets/press/astro-icon-light-gradient.png')
 			.addFields(
 				{
 					name: '🌱 Good First Issues',
