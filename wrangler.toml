@@ -2,7 +2,7 @@ account_id = "6eababa1621550fb2dbc673005c5ac89"
 name = "houstonbot"
 main = "./src/index.ts"
 node_compat=true
-
+compatibility_date = "2025-10-08"
 
 workers_dev = false
 routes = [{ pattern = "houstonbot.dev", custom_domain = true }]
