@@ -14,15 +14,18 @@ const command: Command = {
 			.addFields(
 				{
 					name: '🌱 Good First Issues',
-					value: '[Browse all good first issues →](https://github.com/withastro/astro/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)',
+					value:
+						'[Browse all good first issues →](https://github.com/withastro/astro/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)',
 				},
 				{
 					name: '🙋 Help Wanted',
-					value: '[Browse all help wanted issues →](https://github.com/withastro/astro/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)',
+					value:
+						'[Browse all help wanted issues →](https://github.com/withastro/astro/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)',
 				},
 				{
 					name: '📚 Getting Started',
-					value: '• [Contributing Guide](https://github.com/withastro/astro/blob/main/CONTRIBUTING.md)\n• [Development Setup](https://github.com/withastro/astro/blob/main/CONTRIBUTING.md#development)',
+					value:
+						'• [Contributing Guide](https://github.com/withastro/astro/blob/main/CONTRIBUTING.md)\n• [Development Setup](https://github.com/withastro/astro/blob/main/CONTRIBUTING.md#development)',
 				}
 			)
 			.setFooter({ text: 'Houston, we have a contributor! 🚀' });
