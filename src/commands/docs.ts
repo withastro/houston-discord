@@ -78,7 +78,7 @@ const returnObjectResult = async (
 				'weight',
 			],
 			distinct: false,
-		}
+		},
 	});
 	const hits = searchResult.hits.filter((hit: any) => !hit.hierarchy[`lvl${highest + 1}`]);
 
@@ -153,7 +153,7 @@ const command: Command = {
 			if (query.startsWith('auto-')) {
 				const reply: SearchHit = await index.getObject({
 					indexName: client.env.ALGOLIA_INDEX!,
-					objectID: query.substring(5)
+					objectID: query.substring(5),
 				});
 				await returnObjectResult(client.interaction, reply, client.env);
 				return;
@@ -193,7 +193,7 @@ const command: Command = {
 						'hierarchy.lvl6:10',
 						'content:10',
 					],
-				}
+				},
 			});
 
 			const items = reply.hits.map((hit: any) => {
@@ -305,7 +305,7 @@ const command: Command = {
 				facetFilters: [['lang:' + (getStringOption(client.interaction.data, 'language') ?? 'en')]],
 				hitsPerPage: 20,
 				distinct: true,
-			}
+			},
 		});
 
 		const hits = reply.hits.map((hit: any) => {
