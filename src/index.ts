@@ -14,6 +14,7 @@ import commandList from './commands/index.js';
 import { InteractionClient } from './discordClient.js';
 import { verifyDiscordRequest } from './utils/discordUtils.js';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface Env {
 	// Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
 	// MY_KV_NAMESPACE: KVNamespace;
@@ -128,6 +129,7 @@ router.post('/', async (request, env: Env, ctx: ExecutionContext) => {
 });
 
 export default {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		try {
 			const response = await router.handle(request, env, ctx);
