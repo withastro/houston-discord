@@ -1,7 +1,7 @@
 import { createFetchRequester } from '@algolia/requester-fetch';
 import { EmbedBuilder, SlashCommandBuilder } from '@discordjs/builders';
 import { REST } from '@discordjs/rest';
-import algoliasearch, { SearchClient, SearchIndex } from 'algoliasearch';
+import { algoliasearch, SearchClient } from 'algoliasearch';
 import { APIChatInputApplicationCommandInteraction, InteractionResponseType, Routes } from 'discord-api-types/v10';
 import { decode } from 'html-entities';
 import { Env } from '..';
@@ -10,7 +10,7 @@ import { getBooleanOption, getStringOption } from '../utils/discordUtils.js';
 import { getDefaultEmbed } from '../utils/embeds.js';
 
 let searchClient: SearchClient;
-let index: SearchIndex;
+let index: any;
 let rest: REST;
 
 const generateNameFromHit = (hit: SearchHit): string => {
@@ -59,8 +59,10 @@ const returnObjectResult = async (
 		facetFilters.push([`hierarchy.lvl${i}:${decode(object.hierarchy[`lvl${i}`])}`]);
 	}
 
-	const hits = (
-		await index.search<SearchHit>('', {
+	const searchResult = await index.searchSingleIndex({
+		indexName: env.ALGOLIA_INDEX!,
+		searchParams: {
+			query: '',
 			facetFilters: facetFilters,
 			attributesToRetrieve: [
 				'hierarchy.lvl0',
@@ -76,8 +78,9 @@ const returnObjectResult = async (
 				'weight',
 			],
 			distinct: false,
-		})
-	).hits.filter((hit) => !hit.hierarchy[`lvl${highest + 1}`]);
+		}
+	});
+	const hits = searchResult.hits.filter((hit: any) => !hit.hierarchy[`lvl${highest + 1}`]);
 
 	for (let i = 0; i < hits.length; i++) {
 		if (object.hierarchy[`lvl${i}`] == '') continue;
@@ -138,7 +141,7 @@ const command: Command = {
 		searchClient = algoliasearch(env.ALGOLIA_APP_ID, env.ALGOLIA_API_KEY, {
 			requester: createFetchRequester(),
 		});
-		index = searchClient.initIndex(env.ALGOLIA_INDEX);
+		index = searchClient;
 		rest = new REST({ version: '10' }).setToken(env.DISCORD_TOKEN);
 
 		return true;
@@ -148,7 +151,10 @@ const command: Command = {
 			let query = getStringOption(client.interaction.data, 'query')!;
 
 			if (query.startsWith('auto-')) {
-				const reply: SearchHit = await index.getObject(query.substring(5));
+				const reply: SearchHit = await index.getObject({
+					indexName: client.env.ALGOLIA_INDEX!,
+					objectID: query.substring(5)
+				});
 				await returnObjectResult(client.interaction, reply, client.env);
 				return;
 			}
@@ -157,36 +163,40 @@ const command: Command = {
 				query = query.substring(5);
 			}
 
-			const reply = await index.search<SearchHit>(query, {
-				facetFilters: [['lang:' + (getStringOption(client.interaction.data, 'language') ?? 'en')]],
-				highlightPreTag: '**',
-				highlightPostTag: '**',
-				hitsPerPage: 20,
-				snippetEllipsisText: '…',
-				attributesToRetrieve: [
-					'hierarchy.lvl0',
-					'hierarchy.lvl1',
-					'hierarchy.lvl2',
-					'hierarchy.lvl3',
-					'hierarchy.lvl4',
-					'hierarchy.lvl5',
-					'hierarchy.lvl6',
-					'content',
-					'type',
-					'url',
-				],
-				attributesToSnippet: [
-					'hierarchy.lvl1:10',
-					'hierarchy.lvl2:10',
-					'hierarchy.lvl3:10',
-					'hierarchy.lvl4:10',
-					'hierarchy.lvl5:10',
-					'hierarchy.lvl6:10',
-					'content:10',
-				],
+			const reply = await index.searchSingleIndex({
+				indexName: client.env.ALGOLIA_INDEX!,
+				searchParams: {
+					query: query,
+					facetFilters: [['lang:' + (getStringOption(client.interaction.data, 'language') ?? 'en')]],
+					highlightPreTag: '**',
+					highlightPostTag: '**',
+					hitsPerPage: 20,
+					snippetEllipsisText: '…',
+					attributesToRetrieve: [
+						'hierarchy.lvl0',
+						'hierarchy.lvl1',
+						'hierarchy.lvl2',
+						'hierarchy.lvl3',
+						'hierarchy.lvl4',
+						'hierarchy.lvl5',
+						'hierarchy.lvl6',
+						'content',
+						'type',
+						'url',
+					],
+					attributesToSnippet: [
+						'hierarchy.lvl1:10',
+						'hierarchy.lvl2:10',
+						'hierarchy.lvl3:10',
+						'hierarchy.lvl4:10',
+						'hierarchy.lvl5:10',
+						'hierarchy.lvl6:10',
+						'content:10',
+					],
+				}
 			});
 
-			const items = reply.hits.map((hit) => {
+			const items = reply.hits.map((hit: any) => {
 				const url = new URL(hit.url);
 				if (url.hash == '#overview') url.hash = '';
 
@@ -196,17 +206,17 @@ const command: Command = {
 				};
 			});
 
-			const categories: categories = {};
+			const resultCategories: categories = {};
 
-			items.forEach((item) => {
-				if (!categories[item.hierarchy.lvl0]) {
-					categories[item.hierarchy.lvl0] = [];
+			items.forEach((item: any) => {
+				if (!resultCategories[item.hierarchy.lvl0]) {
+					resultCategories[item.hierarchy.lvl0] = [];
 				}
-				categories[item.hierarchy.lvl0].push(item);
+				resultCategories[item.hierarchy.lvl0].push(item);
 			});
 
 			// exclude tutorials
-			delete categories['Tutorials'];
+			delete resultCategories['Tutorials'];
 
 			const embeds: EmbedBuilder[] = [];
 
@@ -214,37 +224,37 @@ const command: Command = {
 
 			embeds.push(getDefaultEmbed().setTitle(`Results for "${query}"`));
 
-			for (const category in categories) {
+			for (const category in resultCategories) {
 				const embed = getDefaultEmbed().setTitle(decode(category));
 
 				let body = '';
 
-				let items: { [heading: string]: SearchHit[] } = {};
+				let categoryItems: { [heading: string]: SearchHit[] } = {};
 
-				for (let i = 0; i < categories[category].length && i < 5; i++) {
-					const item = categories[category][i];
+				for (let i = 0; i < resultCategories[category].length && i < 5; i++) {
+					const item = resultCategories[category][i];
 					if (!item._snippetResult) return;
 
-					if (!items[item.hierarchy[`lvl1`]]) {
-						items[item.hierarchy[`lvl1`]] = [];
+					if (!categoryItems[item.hierarchy[`lvl1`]]) {
+						categoryItems[item.hierarchy[`lvl1`]] = [];
 					}
 
-					items[item.hierarchy[`lvl1`]].push(item);
+					categoryItems[item.hierarchy[`lvl1`]].push(item);
 				}
 
-				for (const subjectName in items) {
-					const subject = items[subjectName];
+				for (const subjectName in categoryItems) {
+					const subject = categoryItems[subjectName];
 
 					for (let i = 0; i < subject.length; i++) {
 						const item = subject[i];
 
 						let hierarchy = '';
 
-						for (let i = 1; i < 7; i++) {
-							if (item.hierarchy[`lvl${i}`]) {
-								let string = i != 1 ? ' > ' : '';
+						for (let j = 1; j < 7; j++) {
+							if (item.hierarchy[`lvl${j}`]) {
+								let string = j != 1 ? ' > ' : '';
 
-								string += item.hierarchy[`lvl${i}`];
+								string += item.hierarchy[`lvl${j}`];
 
 								hierarchy += string;
 							} else {
@@ -288,13 +298,17 @@ const command: Command = {
 	async autocomplete(client) {
 		const query = getStringOption(client.interaction.data, 'query')!;
 
-		const reply = await index.search<SearchHit>(query, {
-			facetFilters: [['lang:' + (getStringOption(client.interaction.data, 'language') ?? 'en')]],
-			hitsPerPage: 20,
-			distinct: true,
+		const reply = await index.searchSingleIndex({
+			indexName: client.env.ALGOLIA_INDEX!,
+			searchParams: {
+				query: query,
+				facetFilters: [['lang:' + (getStringOption(client.interaction.data, 'language') ?? 'en')]],
+				hitsPerPage: 20,
+				distinct: true,
+			}
 		});
 
-		const hits = reply.hits.map((hit) => {
+		const hits = reply.hits.map((hit: any) => {
 			return {
 				name: generateNameFromHit(hit),
 				value: `auto-${hit.objectID}`,
