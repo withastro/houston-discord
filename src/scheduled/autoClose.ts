@@ -1,6 +1,6 @@
-import { ForumChannel } from "discord.js";
-import type { Client } from "discord.js";
-import { getDefaultEmbed } from "../utils/embeds.js";
+import type { Client } from 'discord.js';
+import { ForumChannel } from 'discord.js';
+import { getDefaultEmbed } from '../utils/embeds.js';
 
 // Time constants (in milliseconds)
 const SOLVED_REMINDER_TIME = parseInt(process.env.SOLVED_REMINDER_TIME || '86400000'); // Default: 24 hours
@@ -15,9 +15,8 @@ export default {
 
 		// Fetch all available tags to find the "Solved" tag ID
 		const availableTags = forum.availableTags;
-		const solvedTag = availableTags.find(tag => 
-			tag.name.toLowerCase() === 'solved' || 
-			tag.name.toLowerCase() === 'resolved'
+		const solvedTag = availableTags.find(
+			(tag) => tag.name.toLowerCase() === 'solved' || tag.name.toLowerCase() === 'resolved'
 		);
 
 		if (!solvedTag) {
@@ -36,18 +35,16 @@ export default {
 					continue;
 				}
 
-				if(thread.id === '1222578561261637734'){
+				if (thread.id === '1222578561261637734') {
 					// This is the pinned thread for CMS, so we just skip it.
 					continue;
 				}
 
 				const threadAge = currentTime.getTime() - thread.createdTimestamp!;
-				
+
 				// Fetch recent messages to check for bot reminder
 				const messages = await thread.messages.fetch({ limit: 10 });
-				const hasBotReminder = messages.some(msg => 
-					msg.author.bot && msg.content.includes(BOT_REMINDER_IDENTIFIER)
-				);
+				const hasBotReminder = messages.some((msg) => msg.author.bot && msg.content.includes(BOT_REMINDER_IDENTIFIER));
 
 				// Stage 1: Send solved reminder after initial period
 				if (threadAge >= SOLVED_REMINDER_TIME && threadAge < AUTO_CLOSE_TIME && !hasBotReminder) {
@@ -69,14 +66,14 @@ export default {
 				else if (threadAge >= AUTO_CLOSE_TIME && hasBotReminder) {
 					// Send final notice before closing
 					await thread.send({
-						content: '🤖 **Auto-closing**: This thread has been inactive for an extended period without being marked as solved. If you still need help, feel free to create a new post or reply to reopen this thread.',
+						content:
+							'🤖 **Auto-closing**: This thread has been inactive for an extended period without being marked as solved. If you still need help, feel free to create a new post or reply to reopen this thread.',
 					});
 
 					// Close the thread
 					await thread.setArchived(true);
 					console.log(`Auto-closed thread: ${thread.name} (${thread.id})`);
 				}
-
 			} catch (error) {
 				console.error(`Error processing thread ${thread.id}:`, error);
 			}
