@@ -1,7 +1,7 @@
 account_id = "6eababa1621550fb2dbc673005c5ac89"
 name = "houstonbot"
 main = "./src/index.ts"
-compatibility_date = "2023-11-08"
+node_compat=true
 
 
 workers_dev = false
