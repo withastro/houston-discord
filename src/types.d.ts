@@ -1,13 +1,10 @@
-import { SlashCommandBuilder, SlashCommandOptionsOnlyBuilder } from "@discordjs/builders"
+import { SlashCommandBuilder } from "@discordjs/builders"
 import { InteractionType } from "discord-api-types/v10"
-import { Client as DiscordClient } from "discord.js"
 import { Env, JsonResponse } from "."
 import { InteractionClient } from "./discordClient"
 
-declare type Client = DiscordClient
-
 declare interface Command {
-	data: Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup"> | SlashCommandOptionsOnlyBuilder,
+	data: Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">,
 	initialize?(env?: Env): boolean | Promise<boolean>,
 	execute(client: InteractionClient<InteractionType.ApplicationCommand>): JsonResponse | any,
 	autocomplete?(client: InteractionClient),

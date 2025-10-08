@@ -75,7 +75,7 @@ async function TryGetEmojiFromURL(
 
 		let guild = (await rest.get(Routes.guild(env.GUILD_ID!))) as APIGuild;
 
-		let emoji = guild.emojis.find((e) => e.name == apexDomain);
+		let emoji = guild.emojis.find((emoji) => emoji.name == apexDomain);
 
 		if (emoji) {
 			return { name: emoji.name!, id: emoji.id!, animated: emoji.animated! };
@@ -171,13 +171,13 @@ const generateReplyFromInteraction = async (
 	let pr_state: PullRequestState = 'PENDING';
 
 	if (deploymentOption) {
-		let deploymentUrl = await TryParseURL(deploymentOption, interaction, env);
-		if (deploymentUrl) {
+		let deployment = await TryParseURL(deploymentOption, interaction, env);
+		if (deployment) {
 			let deploymentLink = new ButtonBuilder()
-				.setEmoji(await TryGetEmojiFromURL(deploymentUrl, interaction, env))
+				.setEmoji(await TryGetEmojiFromURL(deployment, interaction, env))
 				.setLabel('View as Preview')
 				.setStyle(ButtonStyle.Link)
-				.setURL(deploymentUrl.href);
+				.setURL(deployment.href);
 
 			components.push(deploymentLink);
 		} else return null;

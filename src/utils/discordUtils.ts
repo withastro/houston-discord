@@ -24,8 +24,8 @@ export async function verifyDiscordRequest(request: Request, env: Env) {
 export function getStringOption(data: APIChatInputApplicationCommandInteractionData, name: string) {
 	if (!data.options) return undefined;
 
-	let option: APIApplicationCommandInteractionDataStringOption | undefined = data.options.find((opt) => {
-		return opt.name == name && opt.type == ApplicationCommandOptionType.String;
+	let option: APIApplicationCommandInteractionDataStringOption | undefined = data.options.find((option) => {
+		return option.name == name && option.type == ApplicationCommandOptionType.String;
 	}) as APIApplicationCommandInteractionDataStringOption | undefined;
 
 	return option?.value;
@@ -34,8 +34,8 @@ export function getStringOption(data: APIChatInputApplicationCommandInteractionD
 export function getBooleanOption(data: APIChatInputApplicationCommandInteractionData, name: string) {
 	if (!data.options) return false;
 
-	let option: APIApplicationCommandInteractionDataBooleanOption | undefined = data.options.find((opt) => {
-		return opt.name == name && opt.type == ApplicationCommandOptionType.Boolean;
+	let option: APIApplicationCommandInteractionDataBooleanOption | undefined = data.options.find((option) => {
+		return option.name == name && option.type == ApplicationCommandOptionType.Boolean;
 	}) as APIApplicationCommandInteractionDataBooleanOption | undefined;
 
 	return option?.value || false;
